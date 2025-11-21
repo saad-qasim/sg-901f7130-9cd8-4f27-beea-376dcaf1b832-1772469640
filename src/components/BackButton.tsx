@@ -10,7 +10,7 @@ export function BackButton() {
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => router.back()}
+      onClick={() => router.push("/")}
       className="mb-4 gap-2"
     >
       <ArrowLeft className="h-4 w-4" />

@@ -277,6 +277,25 @@ export default function NewInvoicePage() {
       <h1 className="text-4xl font-bold mb-8">Create New Invoice</h1>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Company Information - Moved to top */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <Label htmlFor="company-info">Company Information</Label>
+              <Textarea
+                id="company-info"
+                value={companyInfo}
+                onChange={(e) => setCompanyInfo(e.target.value)}
+                rows={3}
+                placeholder="Company name, address, contact info..."
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Step 1: Customer Selection */}
         <Card>
           <CardHeader>
@@ -598,16 +617,6 @@ export default function NewInvoicePage() {
               <CardTitle>4. Additional Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="company-info">Company Information</Label>
-                <Textarea
-                  id="company-info"
-                  value={companyInfo}
-                  onChange={(e) => setCompanyInfo(e.target.value)}
-                  rows={3}
-                  placeholder="Company name, address, contact info..."
-                />
-              </div>
               <div>
                 <Label htmlFor="warranty">Warranty Terms</Label>
                 <Textarea
