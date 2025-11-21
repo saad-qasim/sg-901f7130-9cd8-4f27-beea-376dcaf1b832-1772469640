@@ -253,6 +253,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_add_brand: boolean
+          can_add_product: boolean
+          can_create_invoices: boolean
+          can_delete_invoices: boolean
+          can_edit_invoices: boolean
+          can_view_stats: boolean
           created_at: string | null
           id: string
           name: string | null
@@ -260,6 +266,12 @@ export type Database = {
           role: string | null
         }
         Insert: {
+          can_add_brand?: boolean
+          can_add_product?: boolean
+          can_create_invoices?: boolean
+          can_delete_invoices?: boolean
+          can_edit_invoices?: boolean
+          can_view_stats?: boolean
           created_at?: string | null
           id: string
           name?: string | null
@@ -267,6 +279,12 @@ export type Database = {
           role?: string | null
         }
         Update: {
+          can_add_brand?: boolean
+          can_add_product?: boolean
+          can_create_invoices?: boolean
+          can_delete_invoices?: boolean
+          can_edit_invoices?: boolean
+          can_view_stats?: boolean
           created_at?: string | null
           id?: string
           name?: string | null

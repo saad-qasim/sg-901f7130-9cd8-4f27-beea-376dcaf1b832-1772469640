@@ -7,12 +7,6 @@ type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export interface ProfileWithEmail extends ProfileRow {
   email: string | null;
-  can_create_invoices: boolean;
-  can_delete_invoices: boolean;
-  can_edit_invoices: boolean;
-  can_add_brand: boolean;
-  can_add_product: boolean;
-  can_view_stats: boolean;
 }
 
 export interface CreateUserData {
@@ -30,39 +24,37 @@ export interface CreateUserData {
 
 export const userService = {
   async getAllProfiles(): Promise<ProfileWithEmail[]> {
-    // First, get all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (profilesError) throw profilesError;
-    if (!profiles) return [];
+    if (!profiles || profiles.length === 0) return [];
 
-    // Then, get auth users to fetch emails
-    // Note: This requires service role key to access auth.users
-    // For now, we'll return profiles without emails as a fallback
-    // In production, you'd need to use Supabase Admin API with service role key
+    const userIds = profiles.map((p) => p.id);
+
+    const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000, // Adjust as needed
+    });
+
+    if (usersError) {
+      console.error("Error fetching auth users:", usersError);
+      // Return profiles without emails as a fallback
+      return profiles.map(profile => ({
+        ...profile,
+        email: null,
+      }));
+    }
     
-    // Try to get user data from auth admin
-    const profilesWithEmails: ProfileWithEmail[] = await Promise.all(
-      profiles.map(async (profile) => {
-        try {
-          const { data: { user }, error } = await supabase.auth.admin.getUserById(profile.id);
-          return {
-            ...profile,
-            email: user?.email || null,
-          };
-        } catch (error) {
-          console.error(`Error fetching email for user ${profile.id}:`, error);
-          return {
-            ...profile,
-            email: null,
-          };
-        }
-      })
-    );
+    const emailMap = new Map(users.users.map(u => [u.id, u.email]));
 
+    const profilesWithEmails: ProfileWithEmail[] = profiles.map(profile => ({
+      ...profile,
+      email: emailMap.get(profile.id) || null,
+    }));
+    
     return profilesWithEmails;
   },
 
