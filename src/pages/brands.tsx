@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
@@ -164,189 +165,191 @@ export default function BrandsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <BackButton />
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Brands</h1>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus size={16} />
-              Add Brand
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingBrand ? "Edit Brand" : "Add New Brand"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Brand Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              {/* Logo Upload Section */}
-              <div>
-                <Label>Brand Logo</Label>
-                <div className="space-y-4">
-                  {/* Preview Section */}
-                  {logoPreview ? (
-                    <div className="relative inline-block">
-                      <img
-                        src={logoPreview}
-                        alt="Logo preview"
-                        className="h-32 w-32 object-contain border rounded-lg p-2"
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="destructive"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                        onClick={handleRemoveLogo}
-                      >
-                        <X size={14} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground">
-                      <Upload size={24} />
-                    </div>
-                  )}
-
-                  {/* Upload Button */}
-                  <div>
-                    <Input
-                      id="logo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                      className="hidden"
-                    />
-                    <Label htmlFor="logo-upload">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="gap-2"
-                        disabled={uploading}
-                        onClick={() => document.getElementById("logo-upload")?.click()}
-                      >
-                        <Upload size={16} />
-                        {uploading ? "Uploading..." : "Upload Logo"}
-                      </Button>
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Supported formats: JPG, PNG, GIF, SVG (Max 5MB)
-                    </p>
-                  </div>
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4">
+        <BackButton />
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Brands</h1>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus size={16} />
+                Add Brand
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingBrand ? "Edit Brand" : "Add New Brand"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Brand Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                  />
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="warranty">Default Warranty Text</Label>
-                <Textarea
-                  id="warranty"
-                  value={formData.warranty_default_text}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      warranty_default_text: e.target.value,
-                    })
-                  }
-                  rows={4}
-                  placeholder="Enter default warranty terms..."
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={uploading}>
-                  {editingBrand ? "Update" : "Create"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {loading ? (
-        <p>Loading brands...</p>
-      ) : brands.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground">
-          No brands yet. Add your first brand to get started!
-        </p>
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Logo</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Warranty Text</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {brands.map((brand) => (
-                <TableRow key={brand.id}>
-                  <TableCell>
-                    {brand.logo_url ? (
-                      <img
-                        src={brand.logo_url}
-                        alt={brand.name}
-                        className="h-10 w-10 object-contain"
-                      />
+                {/* Logo Upload Section */}
+                <div>
+                  <Label>Brand Logo</Label>
+                  <div className="space-y-4">
+                    {/* Preview Section */}
+                    {logoPreview ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="h-32 w-32 object-contain border rounded-lg p-2"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={handleRemoveLogo}
+                        >
+                          <X size={14} />
+                        </Button>
+                      </div>
                     ) : (
-                      <div className="h-10 w-10 bg-muted rounded flex items-center justify-center text-xs">
-                        No Logo
+                      <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground">
+                        <Upload size={24} />
                       </div>
                     )}
-                  </TableCell>
-                  <TableCell className="font-medium">{brand.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-md truncate">
-                    {brand.warranty_default_text || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleEdit(brand)}
-                      >
-                        <Pencil size={16} />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleDelete(brand.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+
+                    {/* Upload Button */}
+                    <div>
+                      <Input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                        className="hidden"
+                      />
+                      <Label htmlFor="logo-upload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2"
+                          disabled={uploading}
+                          onClick={() => document.getElementById("logo-upload")?.click()}
+                        >
+                          <Upload size={16} />
+                          {uploading ? "Uploading..." : "Upload Logo"}
+                        </Button>
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supported formats: JPG, PNG, GIF, SVG (Max 5MB)
+                      </p>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="warranty">Default Warranty Text</Label>
+                  <Textarea
+                    id="warranty"
+                    value={formData.warranty_default_text}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        warranty_default_text: e.target.value,
+                      })
+                    }
+                    rows={4}
+                    placeholder="Enter default warranty terms..."
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={uploading}>
+                    {editingBrand ? "Update" : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
-    </div>
+
+        {loading ? (
+          <p>Loading brands...</p>
+        ) : brands.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">
+            No brands yet. Add your first brand to get started!
+          </p>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Logo</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Warranty Text</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {brands.map((brand) => (
+                  <TableRow key={brand.id}>
+                    <TableCell>
+                      {brand.logo_url ? (
+                        <img
+                          src={brand.logo_url}
+                          alt={brand.name}
+                          className="h-10 w-10 object-contain"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center text-xs">
+                          No Logo
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{brand.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-md truncate">
+                      {brand.warranty_default_text || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEdit(brand)}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(brand.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </ProtectedRoute>
   );
 }
