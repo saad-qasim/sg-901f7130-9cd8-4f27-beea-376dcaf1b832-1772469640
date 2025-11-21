@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { brandService } from "@/services/brandService";
+import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
@@ -31,6 +32,8 @@ export default function BrandsPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const [formData, setFormData] = useState<BrandInsert>({
     name: "",
     logo_url: "",
@@ -52,6 +55,63 @@ export default function BrandsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = fileName;
+
+      // Upload file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from("brand-logos")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("brand-logos")
+        .getPublicUrl(filePath);
+
+      // Update form data with the public URL
+      setFormData({ ...formData, logo_url: publicUrl });
+      setLogoPreview(publicUrl);
+
+      alert("Logo uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      alert("Failed to upload logo. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setFormData({ ...formData, logo_url: "" });
+    setLogoPreview("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +138,7 @@ export default function BrandsPage() {
       logo_url: brand.logo_url || "",
       warranty_default_text: brand.warranty_default_text || "",
     });
+    setLogoPreview(brand.logo_url || "");
     setDialogOpen(true);
   };
 
@@ -99,6 +160,7 @@ export default function BrandsPage() {
       logo_url: "",
       warranty_default_text: "",
     });
+    setLogoPreview("");
   };
 
   return (
@@ -133,17 +195,64 @@ export default function BrandsPage() {
                   required
                 />
               </div>
+
+              {/* Logo Upload Section */}
               <div>
-                <Label htmlFor="logo_url">Logo URL</Label>
-                <Input
-                  id="logo_url"
-                  value={formData.logo_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, logo_url: e.target.value })
-                  }
-                  placeholder="https://example.com/logo.png"
-                />
+                <Label>Brand Logo</Label>
+                <div className="space-y-4">
+                  {/* Preview Section */}
+                  {logoPreview ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={logoPreview}
+                        alt="Logo preview"
+                        className="h-32 w-32 object-contain border rounded-lg p-2"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                        onClick={handleRemoveLogo}
+                      >
+                        <X size={14} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground">
+                      <Upload size={24} />
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  <div>
+                    <Input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                    <Label htmlFor="logo-upload">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2"
+                        disabled={uploading}
+                        onClick={() => document.getElementById("logo-upload")?.click()}
+                      >
+                        <Upload size={16} />
+                        {uploading ? "Uploading..." : "Upload Logo"}
+                      </Button>
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Supported formats: JPG, PNG, GIF, SVG (Max 5MB)
+                    </p>
+                  </div>
+                </div>
               </div>
+
               <div>
                 <Label htmlFor="warranty">Default Warranty Text</Label>
                 <Textarea
@@ -167,7 +276,7 @@ export default function BrandsPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={uploading}>
                   {editingBrand ? "Update" : "Create"}
                 </Button>
               </div>
