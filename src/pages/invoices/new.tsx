@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { supabase } from "@/lib/supabaseClient";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
@@ -78,21 +79,27 @@ export default function NewInvoicePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [
-          customersData,
-          brandsData,
-          productsData,
-          nextInvoiceNum,
-          settingsData,
-        ] = await Promise.all([
-          customerService.getAllCustomers(),
-          brandService.getAllBrands(),
+        // Fetch customers directly from Supabase - NO FILTERING
+        const { data: customersData } = await supabase
+          .from("customers")
+          .select("*")
+          .order("name", { ascending: true });
+
+        // Fetch brands directly from Supabase - NO FILTERING
+        const { data: brandsData } = await supabase
+          .from("brands")
+          .select("*")
+          .order("name", { ascending: true });
+
+        // Keep the rest as-is
+        const [productsData, nextInvoiceNum, settingsData] = await Promise.all([
           productService.getAllProducts(),
           invoiceService.generateInvoiceNumber(),
           companyService.getCompanySettings(),
         ]);
-        setCustomers(customersData);
-        setBrands(brandsData);
+
+        setCustomers(customersData || []);
+        setBrands(brandsData || []);
         setProducts(productsData);
         setFilteredProducts(productsData);
         setInvoiceNumber(nextInvoiceNum.toString());
