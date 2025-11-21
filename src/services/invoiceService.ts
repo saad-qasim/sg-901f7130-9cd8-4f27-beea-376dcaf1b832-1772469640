@@ -32,7 +32,6 @@ export const invoiceService = {
       .from("invoices")
       .select(`
         *,
-        invoice_title,
         customers (
           name,
           phone,
@@ -55,7 +54,6 @@ export const invoiceService = {
       .from("invoices")
       .select(`
         *,
-        invoice_title,
         customers (
           name,
           phone,
@@ -152,7 +150,6 @@ export const invoiceService = {
         *,
         invoices (
           *,
-          invoice_title,
           customers (
             name,
             phone,
@@ -177,7 +174,6 @@ export const invoiceService = {
       .from("invoices")
       .select(`
         *,
-        invoice_title,
         customers!inner (
           name,
           phone,
@@ -216,7 +212,6 @@ export const invoiceService = {
         .from("invoices")
         .select(`
           *,
-          invoice_title,
           customers (
             name,
             phone,
