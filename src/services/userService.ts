@@ -61,7 +61,11 @@ export const userService = {
       }));
     }
     
-    const emailMap = new Map<string, string | undefined>(users.users.map(u => [u.id, u.email]));
+    const emailMap = new Map<string, string>(
+      users.users
+        .filter(u => u.email)
+        .map(u => [u.id, u.email as string])
+    );
 
     const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
       ...profile,
