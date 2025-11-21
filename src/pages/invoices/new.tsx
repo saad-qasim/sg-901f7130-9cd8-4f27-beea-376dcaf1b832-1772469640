@@ -35,14 +35,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
 
-// This component contains the form and its logic
-const NewInvoiceForm = () => {
+export default function NewInvoicePage() {
   const router = useRouter();
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(
@@ -248,394 +246,352 @@ const NewInvoiceForm = () => {
   };
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">إنشاء فاتورة جديدة</h1>
-        <Button onClick={handleCreateInvoice} disabled={saving}>
-          {saving ? "جاري الحفظ..." : "حفظ الفاتورة"}
-        </Button>
-      </div>
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4">
+        <BackButton />
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">إنشاء فاتورة جديدة</h1>
+          <Button onClick={handleCreateInvoice} disabled={saving}>
+            {saving ? "جاري الحفظ..." : "حفظ الفاتورة"}
+          </Button>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Customer and Brand Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>معلومات العميل والعلامة التجارية</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="customer">العميل</Label>
-                <div className="flex gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Customer and Brand Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>معلومات العميل والعلامة التجارية</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="customer">العميل</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      onValueChange={setSelectedCustomerId}
+                      value={selectedCustomerId || ""}
+                    >
+                      <SelectTrigger id="customer">
+                        <SelectValue placeholder="اختر عميل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.phone})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setShowNewCustomerDialog(true)}
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="brand">العلامة التجارية</Label>
                   <Select
-                    onValueChange={setSelectedCustomerId}
-                    value={selectedCustomerId || ""}
+                    onValueChange={handleBrandChange}
+                    value={selectedBrandId || ""}
                   >
-                    <SelectTrigger id="customer">
-                      <SelectValue placeholder="اختر عميل" />
+                    <SelectTrigger id="brand">
+                      <SelectValue placeholder="اختر علامة تجارية" />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.phone})
+                      {brands.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={() => setShowNewCustomerDialog(true)}
-                  >
-                    <Plus size={16} />
-                  </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoice Items */}
+            <Card>
+              <CardHeader>
+                <CardTitle>تفاصيل الفاتورة</CardTitle>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setShowProductSearchDialog(true)}
+                  disabled={!selectedBrandId}
+                >
+                  <Plus size={16} />
+                  إضافة منتج
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>المنتج</TableHead>
+                        <TableHead>الرقم التسلسلي</TableHead>
+                        <TableHead className="w-[100px]">الكمية</TableHead>
+                        <TableHead className="w-[150px]">السعر</TableHead>
+                        <TableHead className="w-[150px]">المجموع</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoiceItems.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            لم يتم إضافة أي منتجات بعد
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        invoiceItems.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">
+                              {item.product_name_snapshot}
+                            </TableCell>
+                            <TableCell>{item.serial_number}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.quantity || ""}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "quantity",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full"
+                                min="1"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.unit_price || ""}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "unit_price",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full"
+                                dir="ltr"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {formatCurrencyDisplay(
+                                (item.quantity || 0) * (item.unit_price || 0)
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleRemoveItem(index)}
+                                className="text-destructive"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Invoice Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>معلومات الفاتورة</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invoice-number">رقم الفاتورة</Label>
+                  <Input
+                    id="invoice-number"
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    readOnly
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invoice-date">تاريخ الفاتورة</Label>
+                  <Input
+                    id="invoice-date"
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">العملة</Label>
+                  <Select
+                    onValueChange={(val: "IQD" | "USD") => setCurrency(val)}
+                    value={currency}
+                  >
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IQD">دينار عراقي (IQD)</SelectItem>
+                      <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle>ملاحظات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="أضف ملاحظات إضافية هنا..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={4}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Totals */}
+            <Card className="bg-muted/30">
+              <CardHeader>
+                <CardTitle>الإجمالي</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold tracking-tight">
+                  {formatCurrencyDisplay(total)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* New Customer Dialog */}
+        <Dialog
+          open={showNewCustomerDialog}
+          onOpenChange={setShowNewCustomerDialog}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>إضافة عميل جديد</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-customer-name">اسم العميل</Label>
+                <Input
+                  id="new-customer-name"
+                  value={newCustomer.name}
+                  onChange={(e) =>
+                    setNewCustomer({ ...newCustomer, name: e.target.value })
+                  }
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="brand">العلامة التجارية</Label>
-                <Select
-                  onValueChange={handleBrandChange}
-                  value={selectedBrandId || ""}
-                >
-                  <SelectTrigger id="brand">
-                    <SelectValue placeholder="اختر علامة تجارية" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brands.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="new-customer-phone">رقم الهاتف</Label>
+                <Input
+                  id="new-customer-phone"
+                  value={newCustomer.phone}
+                  onChange={(e) =>
+                    setNewCustomer({ ...newCustomer, phone: e.target.value })
+                  }
+                  dir="ltr"
+                />
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewCustomerDialog(false)}
+                >
+                  إلغاء
+                </Button>
+                <Button onClick={handleSaveNewCustomer}>حفظ العميل</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-          {/* Invoice Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>تفاصيل الفاتورة</CardTitle>
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => setShowProductSearchDialog(true)}
-                disabled={!selectedBrandId}
-              >
-                <Plus size={16} />
-                إضافة منتج
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg overflow-hidden">
+        {/* Product Search Dialog */}
+        <Dialog
+          open={showProductSearchDialog}
+          onOpenChange={setShowProductSearchDialog}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                البحث عن منتج ({brands.find((b) => b.id === selectedBrandId)?.name}
+                )
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="relative mb-4">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={18}
+                />
+                <Input
+                  placeholder="ابحث بالاسم، الوصف، أو الرقم التسلسلي..."
+                  value={productSearchTerm}
+                  onChange={(e) => filterProducts(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="max-h-[50vh] overflow-y-auto border rounded-lg">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>المنتج</TableHead>
-                      <TableHead>الرقم التسلسلي</TableHead>
-                      <TableHead className="w-[100px]">الكمية</TableHead>
-                      <TableHead className="w-[150px]">السعر</TableHead>
-                      <TableHead className="w-[150px]">المجموع</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead>السعر (IQD)</TableHead>
+                      <TableHead>السعر (USD)</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoiceItems.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          لم يتم إضافة أي منتجات بعد
+                    {filteredProducts.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {p.model_number} - {p.description}
+                          </div>
+                        </TableCell>
+                        <TableCell>{p.unit_price_iqd?.toLocaleString()}</TableCell>
+                        <TableCell>${p.unit_price_usd?.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAddProduct(p)}
+                          >
+                            إضافة
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      invoiceItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {item.product_name_snapshot}
-                          </TableCell>
-                          <TableCell>{item.serial_number}</TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={item.quantity || ""}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  "quantity",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full"
-                              min="1"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={item.unit_price || ""}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  "unit_price",
-                                  e.target.value
-                                )
-                              }
-                              className="w-full"
-                              dir="ltr"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {formatCurrencyDisplay(
-                              (item.quantity || 0) * (item.unit_price || 0)
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleRemoveItem(index)}
-                              className="text-destructive"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Invoice Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>معلومات الفاتورة</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="invoice-number">رقم الفاتورة</Label>
-                <Input
-                  id="invoice-number"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  readOnly
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invoice-date">تاريخ الفاتورة</Label>
-                <Input
-                  id="invoice-date"
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="currency">العملة</Label>
-                <Select
-                  onValueChange={(val: "IQD" | "USD") => setCurrency(val)}
-                  value={currency}
-                >
-                  <SelectTrigger id="currency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IQD">دينار عراقي (IQD)</SelectItem>
-                    <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>ملاحظات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="أضف ملاحظات إضافية هنا..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Totals */}
-          <Card className="bg-muted/30">
-            <CardHeader>
-              <CardTitle>الإجمالي</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold tracking-tight">
-                {formatCurrencyDisplay(total)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* New Customer Dialog */}
-      <Dialog
-        open={showNewCustomerDialog}
-        onOpenChange={setShowNewCustomerDialog}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إضافة عميل جديد</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-customer-name">اسم العميل</Label>
-              <Input
-                id="new-customer-name"
-                value={newCustomer.name}
-                onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, name: e.target.value })
-                }
-              />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-customer-phone">رقم الهاتف</Label>
-              <Input
-                id="new-customer-phone"
-                value={newCustomer.phone}
-                onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, phone: e.target.value })
-                }
-                dir="ltr"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowNewCustomerDialog(false)}
-              >
-                إلغاء
-              </Button>
-              <Button onClick={handleSaveNewCustomer}>حفظ العميل</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Product Search Dialog */}
-      <Dialog
-        open={showProductSearchDialog}
-        onOpenChange={setShowProductSearchDialog}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              البحث عن منتج ({brands.find((b) => b.id === selectedBrandId)?.name}
-              )
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="relative mb-4">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                size={18}
-              />
-              <Input
-                placeholder="ابحث بالاسم، الوصف، أو الرقم التسلسلي..."
-                value={productSearchTerm}
-                onChange={(e) => filterProducts(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="max-h-[50vh] overflow-y-auto border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>المنتج</TableHead>
-                    <TableHead>السعر (IQD)</TableHead>
-                    <TableHead>السعر (USD)</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {p.model_number} - {p.description}
-                        </div>
-                      </TableCell>
-                      <TableCell>{p.unit_price_iqd?.toLocaleString()}</TableCell>
-                      <TableCell>${p.unit_price_usd?.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAddProduct(p)}
-                        >
-                          إضافة
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-};
-
-// This is the main page component
-export default function NewInvoicePage() {
-  const router = useRouter();
-  const { profile, loading } = useAuth();
-  const [permissionChecked, setPermissionChecked] = useState(false);
-
-  useEffect(() => {
-    if (!loading) {
-      if (!profile?.can_create_invoices) {
-        console.warn("User does not have permission to create invoices");
-        router.push("/invoices");
-      } else {
-        setPermissionChecked(true);
-      }
-    }
-  }, [profile, loading, router]);
-
-  return (
-    <ProtectedRoute>
-      <div className="container mx-auto py-8 px-4">
-        <BackButton />
-        {permissionChecked && profile?.can_create_invoices ? (
-          <NewInvoiceForm />
-        ) : (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">
-              {loading || !permissionChecked ? "جاري التحقق من الصلاحيات..." : "غير مصرح"}
-            </h2>
-            {!loading && !profile?.can_create_invoices && (
-              <>
-                <p className="text-muted-foreground mb-6">
-                  ليس لديك صلاحية لإنشاء فواتير جديدة.
-                </p>
-                <Button onClick={() => router.push("/invoices")}>
-                  العودة إلى الفواتير
-                </Button>
-              </>
-            )}
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
     </ProtectedRoute>
   );
