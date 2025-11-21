@@ -165,5 +165,76 @@ export const invoiceService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async searchInvoices(searchTerm: string): Promise<Omit<InvoiceWithRelations, 'invoice_items'>[]> {
+    // Search by customer name (starts with) OR phone (contains) OR serial number (contains)
+    const { data: invoicesByCustomer, error: customerError } = await supabase
+      .from("invoices")
+      .select(`
+        *,
+        customers!inner (
+          name,
+          phone,
+          address,
+          email
+        ),
+        brands (
+          name,
+          logo_url
+        )
+      `)
+      .or(`customers.name.ilike.${searchTerm}%,customers.phone.ilike.%${searchTerm}%`)
+      .order("created_at", { ascending: false });
+
+    if (customerError) throw customerError;
+
+    // Search by serial number in invoice_items
+    const { data: itemsWithSerial, error: serialError } = await supabase
+      .from("invoice_items")
+      .select(`
+        invoice_id
+      `)
+      .ilike("serial_number", `%${searchTerm}%`);
+
+    if (serialError) throw serialError;
+
+    // Get unique invoice IDs from serial number search
+    const invoiceIdsFromSerial = Array.from(
+      new Set(itemsWithSerial?.map(item => item.invoice_id) || [])
+    );
+
+    // Fetch invoices by IDs from serial search
+    let invoicesBySerial: any[] = [];
+    if (invoiceIdsFromSerial.length > 0) {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select(`
+          *,
+          customers (
+            name,
+            phone,
+            address,
+            email
+          ),
+          brands (
+            name,
+            logo_url
+          )
+        `)
+        .in("id", invoiceIdsFromSerial)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      invoicesBySerial = data || [];
+    }
+
+    // Combine results and remove duplicates
+    const allInvoices = [...(invoicesByCustomer || []), ...invoicesBySerial];
+    const uniqueInvoices = Array.from(
+      new Map(allInvoices.map(invoice => [invoice.id, invoice])).values()
+    );
+
+    return uniqueInvoices;
   }
 };

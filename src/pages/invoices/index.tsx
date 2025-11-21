@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -10,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, Search } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 
 type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
@@ -19,6 +21,8 @@ export default function InvoicesListPage() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -34,6 +38,36 @@ export default function InvoicesListPage() {
       alert("Failed to load invoices");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // If search term is empty or less than 2 characters, reload all invoices
+    if (!searchTerm.trim() || searchTerm.trim().length < 2) {
+      loadInvoices();
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const results = await invoiceService.searchInvoices(searchTerm.trim());
+      setInvoices(results);
+    } catch (error) {
+      console.error("Error searching invoices:", error);
+      alert("Failed to search invoices. Please try again.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchTerm(value);
+    
+    // If search is cleared, reload all invoices
+    if (!value.trim()) {
+      loadInvoices();
     }
   };
 
@@ -66,11 +100,46 @@ export default function InvoicesListPage() {
         </Button>
       </div>
 
+      {/* Search Input */}
+      <div className="mb-6">
+        <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl">
+          <div className="flex-1">
+            <Label htmlFor="invoice-search" className="sr-only">
+              Search Invoices
+            </Label>
+            <div className="relative">
+              <Search 
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
+                size={18} 
+              />
+              <Input
+                id="invoice-search"
+                placeholder="ابحث بالاسم أو رقم الهاتف أو السيريال نمبر"
+                value={searchTerm}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
+                className="pl-10"
+                dir="rtl"
+              />
+            </div>
+          </div>
+          <Button type="submit" disabled={searching || searchTerm.trim().length < 2}>
+            {searching ? "Searching..." : "Search"}
+          </Button>
+        </form>
+        {searchTerm.trim() && searchTerm.trim().length < 2 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Please enter at least 2 characters to search
+          </p>
+        )}
+      </div>
+
       {loading ? (
         <p>Loading invoices...</p>
       ) : invoices.length === 0 ? (
         <p className="text-center py-8 text-muted-foreground">
-          No invoices yet. Create your first invoice to get started!
+          {searchTerm.trim() 
+            ? `No invoices found matching "${searchTerm}"`
+            : "No invoices yet. Create your first invoice to get started!"}
         </p>
       ) : (
         <div className="border rounded-lg">
