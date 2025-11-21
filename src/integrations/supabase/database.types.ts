@@ -141,6 +141,7 @@ export type Database = {
       invoices: {
         Row: {
           brand_id: string | null
+          company_id: string | null
           company_info_snapshot: string | null
           created_at: string | null
           created_by: string | null
@@ -152,12 +153,14 @@ export type Database = {
           notes: string | null
           shipping_cost: number | null
           subtotal: number | null
+          template_type: string | null
           total: number | null
           warranty_end_date: string | null
           warranty_text_snapshot: string | null
         }
         Insert: {
           brand_id?: string | null
+          company_id?: string | null
           company_info_snapshot?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -169,12 +172,14 @@ export type Database = {
           notes?: string | null
           shipping_cost?: number | null
           subtotal?: number | null
+          template_type?: string | null
           total?: number | null
           warranty_end_date?: string | null
           warranty_text_snapshot?: string | null
         }
         Update: {
           brand_id?: string | null
+          company_id?: string | null
           company_info_snapshot?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -186,6 +191,7 @@ export type Database = {
           notes?: string | null
           shipping_cost?: number | null
           subtotal?: number | null
+          template_type?: string | null
           total?: number | null
           warranty_end_date?: string | null
           warranty_text_snapshot?: string | null
@@ -196,6 +202,13 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_settings"
             referencedColumns: ["id"]
           },
           {

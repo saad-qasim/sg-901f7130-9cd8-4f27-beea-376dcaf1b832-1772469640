@@ -39,778 +39,591 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
-type Product = Database["public"]["Tables"]["products"]["Row"];
-type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
+type InvoiceItemInsert =
+  Database["public"]["Tables"]["invoice_items"]["Insert"];
 
-export default function NewInvoicePage() {
+// This component contains the form and its logic
+const NewInvoiceForm = () => {
   const router = useRouter();
-  const { profile } = useAuth();
-  const [loading, setLoading] = useState(false);
-  
-  // Check permissions - redirect if user cannot create invoices
-  useEffect(() => {
-    if (profile && !profile.can_create_invoices) {
-      console.warn("User does not have permission to create invoices");
-      router.push("/invoices");
-    }
-  }, [profile, router]);
-
-  // If user doesn't have permission, don't render the form
-  if (profile && !profile.can_create_invoices) {
-    return (
-      <ProtectedRoute>
-        <div className="container mx-auto py-8 px-4">
-          <BackButton />
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">غير مصرح</h2>
-            <p className="text-muted-foreground mb-6">
-              ليس لديك صلاحية لإنشاء فواتير جديدة.
-            </p>
-            <Button onClick={() => router.push("/invoices")}>
-              العودة إلى الفواتير
-            </Button>
-          </div>
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  // Step 0: Company Selection
-  const [companies, setCompanies] = useState<CompanySettings[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<CompanySettings | null>(null);
-  
-  // Step 1: Customer Selection
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
-  const [newCustomerForm, setNewCustomerForm] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    email: "",
-  });
-
-  // Step 2: Brand Selection
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-
-  // Step 3: Invoice Items
-  const [products, setProducts] = useState<ProductWithBrand[]>([]);
-  const [items, setItems] = useState<Omit<InvoiceItemInsert, "invoice_id">[]>([]);
-  const [currency, setCurrency] = useState<"IQD" | "USD">("IQD");
-  
-  // Invoice Details
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [shippingCost, setShippingCost] = useState(0);
-  const [warrantyText, setWarrantyText] = useState("");
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    null
+  );
+  const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
+
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+
+  const [products, setProducts] = useState<ProductWithBrand[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductWithBrand[]>(
+    []
+  );
+  const [showProductSearchDialog, setShowProductSearchDialog] = useState(false);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceItemInsert[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currency, setCurrency] = useState<"IQD" | "USD">("IQD");
   const [notes, setNotes] = useState("");
-  const [companyInfo, setCompanyInfo] = useState("");
+
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
+    null
+  );
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadCompanies();
-    loadCustomers();
-    loadBrands();
+    const fetchData = async () => {
+      try {
+        const [
+          customersData,
+          brandsData,
+          productsData,
+          nextInvoiceNum,
+          settingsData,
+        ] = await Promise.all([
+          customerService.getAllCustomers(),
+          brandService.getAllBrands(),
+          productService.getAllProducts(),
+          invoiceService.getNextInvoiceNumber(),
+          companyService.getCompanySettings(),
+        ]);
+        setCustomers(customersData);
+        setBrands(brandsData);
+        setProducts(productsData);
+        setFilteredProducts(productsData);
+        setInvoiceNumber(nextInvoiceNum.toString());
+        setCompanySettings(settingsData);
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      }
+    };
+    fetchData();
   }, []);
 
   useEffect(() => {
-    if (selectedBrand) {
-      loadProductsByBrand(selectedBrand.id);
-      setWarrantyText(selectedBrand.warranty_default_text || "");
-    }
-  }, [selectedBrand]);
+    const newTotal = invoiceItems.reduce(
+      (acc, item) => acc + (item.quantity || 0) * (item.price || 0),
+      0
+    );
+    setTotal(newTotal);
+  }, [invoiceItems]);
 
-  const loadCompanies = async () => {
-    try {
-      const data = await companyService.getAllCompanies();
-      setCompanies(data);
-      
-      // Auto-select if only one company exists
-      if (data.length === 1) {
-        setSelectedCompany(data[0]);
-        setCompanyInfo(data[0].company_info_text || "");
-        setCurrency((data[0].default_currency as "IQD" | "USD") || "IQD");
-      }
-    } catch (error) {
-      console.error("Error loading companies:", error);
-    }
+  const handleBrandChange = (brandId: string) => {
+    setSelectedBrandId(brandId);
+    const brandProducts = products.filter((p) => p.brand_id === brandId);
+    setFilteredProducts(brandProducts);
   };
 
-  const loadCustomers = async () => {
-    try {
-      const data = await customerService.getAllCustomers();
-      setCustomers(data);
-    } catch (error) {
-      console.error("Error loading customers:", error);
+  const handleAddProduct = (product: ProductWithBrand) => {
+    const existingItem = invoiceItems.find((item) => item.product_id === product.id);
+    if (existingItem) {
+      alert("This product is already in the invoice.");
+      return;
     }
+
+    const newItem: InvoiceItemInsert = {
+      product_id: product.id,
+      description: product.description,
+      serial_number: product.serial_number,
+      quantity: 1,
+      price: currency === "USD" ? product.price_usd || 0 : product.price_iqd || 0,
+    };
+    setInvoiceItems([...invoiceItems, newItem]);
+    setShowProductSearchDialog(false);
+    setProductSearchTerm("");
   };
 
-  const loadBrands = async () => {
-    try {
-      const data = await brandService.getAllBrands();
-      setBrands(data);
-    } catch (error) {
-      console.error("Error loading brands:", error);
+  const handleItemChange = (
+    index: number,
+    field: keyof InvoiceItemInsert,
+    value: string | number
+  ) => {
+    const updatedItems = [...invoiceItems];
+    const item = updatedItems[index];
+
+    if (field === "quantity" || field === "price") {
+      (item[field] as number) = Number(value);
+    } else {
+      (item[field] as string) = String(value);
     }
+
+    setInvoiceItems(updatedItems);
   };
 
-  const loadProductsByBrand = async (brandId: string) => {
-    try {
-      const data = await productService.getProductsByBrand(brandId);
-      setProducts(data);
-    } catch (error) {
-      console.error("Error loading products:", error);
-    }
+  const handleRemoveItem = (index: number) => {
+    setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
   };
 
-  const handleCompanyChange = (companyId: string) => {
-    const company = companies.find((c) => c.id === companyId);
-    if (company) {
-      setSelectedCompany(company);
-      setCompanyInfo(company.company_info_text || "");
-      setCurrency((company.default_currency as "IQD" | "USD") || "IQD");
+  const handleSaveNewCustomer = async () => {
+    if (!newCustomer.name) {
+      alert("Please enter customer name");
+      return;
     }
-  };
-
-  const handleCreateCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
     try {
-      const newCustomer = await customerService.createCustomer(newCustomerForm);
-      setCustomers([...customers, newCustomer]);
-      setSelectedCustomer(newCustomer);
-      setShowCustomerDialog(false);
-      setNewCustomerForm({ name: "", phone: "", address: "", email: "" });
+      const createdCustomer = await customerService.createCustomer(newCustomer);
+      setCustomers([...customers, createdCustomer]);
+      setSelectedCustomerId(createdCustomer.id);
+      setShowNewCustomerDialog(false);
+      setNewCustomer({ name: "", phone: "" });
     } catch (error) {
       console.error("Error creating customer:", error);
       alert("Failed to create customer");
     }
   };
 
-  const addItem = () => {
-    setItems([
-      ...items,
-      {
-        product_id: "",
-        product_name_snapshot: "",
-        serial_number: "",
-        quantity: 1,
-        unit_price: 0,
-        total: 0,
-      },
-    ]);
-  };
-
-  const updateItem = (index: number, field: keyof Omit<InvoiceItemInsert, "invoice_id">, value: any) => {
-    const updatedItems = [...items];
-    const currentItem = { ...updatedItems[index] };
-    
-    if (field === "product_id") {
-      const product = products.find((p) => p.id === value);
-      if (product) {
-        currentItem.product_id = value;
-        currentItem.product_name_snapshot = product.name;
-        currentItem.unit_price =
-          currency === "IQD" ? product.unit_price_iqd ?? 0 : product.unit_price_usd ?? 0;
-        
-        // Update warranty text if product has specific warranty
-        if (product.warranty_text) {
-          setWarrantyText(product.warranty_text);
-        }
-      }
-    } else {
-      (currentItem as any)[field] = value;
-    }
-
-    // Recalculate total
-    currentItem.total = (currentItem.quantity || 1) * (currentItem.unit_price || 0);
-    updatedItems[index] = currentItem;
-    
-    setItems(updatedItems);
-  };
-
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
-
-  const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (item.total || 0), 0);
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + shippingCost;
-  };
-
-  const generateInvoiceNumber = () => {
-    const date = new Date();
-    const dateStr = date.toISOString().split("T")[0].replace(/-/g, "");
-    const random = Math.floor(Math.random() * 9999)
-      .toString()
-      .padStart(4, "0");
-    return `INV-${dateStr}-${random}`;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedCompany) {
-      alert("Please select a company");
+  const handleCreateInvoice = async () => {
+    if (!selectedCustomerId) {
+      alert("Please select a customer.");
       return;
     }
-    if (!selectedCustomer) {
-      alert("Please select a customer");
-      return;
-    }
-    if (!selectedBrand) {
-      alert("Please select a brand");
-      return;
-    }
-    if (items.length === 0) {
-      alert("Please add at least one item");
+    if (invoiceItems.length === 0) {
+      alert("Please add at least one product to the invoice.");
       return;
     }
 
-    // Validate all items have required fields
-    for (const item of items) {
-      if (!item.product_id || !item.serial_number) {
-        alert("All items must have a product and serial number");
-        return;
-      }
-    }
-
+    setSaving(true);
     try {
-      setLoading(true);
-
-      const invoiceNumber = generateInvoiceNumber();
-      const warrantyEndDate = new Date(invoiceDate);
-      warrantyEndDate.setFullYear(warrantyEndDate.getFullYear() + 2);
-
       const invoiceData = {
-        invoice_number: invoiceNumber,
+        customer_id: selectedCustomerId,
+        brand_id: selectedBrandId,
+        invoice_number: parseInt(invoiceNumber, 10),
         invoice_date: invoiceDate,
-        warranty_end_date: warrantyEndDate.toISOString().split("T")[0],
-        customer_id: selectedCustomer.id,
-        brand_id: selectedBrand.id,
-        company_id: selectedCompany.id,
-        company_info_snapshot: companyInfo,
-        warranty_text_snapshot: warrantyText,
+        total,
         currency,
-        subtotal: calculateSubtotal(),
-        shipping_cost: shippingCost,
-        total: calculateTotal(),
         notes,
-        created_by: null, // TODO: Replace with actual user ID when auth is implemented
       };
 
-      // The `items` state now directly matches the required insert type
-      const { id } = await invoiceService.createInvoiceWithItems({
-        invoice: invoiceData,
-        items: items,
-      });
+      const createdInvoice = await invoiceService.createInvoice(
+        invoiceData,
+        invoiceItems
+      );
 
-      router.push(`/invoices/${id}`);
+      router.push(`/invoices/${createdInvoice.id}`);
     } catch (error) {
       console.error("Error creating invoice:", error);
-      alert("Failed to create invoice. Please try again.");
+      alert("Failed to create invoice");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-      (c.phone && c.phone.includes(customerSearch))
-  );
+  const filterProducts = (term: string) => {
+    setProductSearchTerm(term);
+    if (!term) {
+      setFilteredProducts(products);
+      return;
+    }
+    const lowercasedTerm = term.toLowerCase();
+    const results = products.filter(
+      (p) =>
+        p.description?.toLowerCase().includes(lowercasedTerm) ||
+        p.serial_number?.toLowerCase().includes(lowercasedTerm)
+    );
+    setFilteredProducts(results);
+  };
+
+  const formatCurrencyDisplay = (amount: number) => {
+    if (currency === "USD") {
+      return `$${amount.toFixed(2)}`;
+    }
+    return `${amount.toLocaleString()} IQD`;
+  };
 
   return (
-    <ProtectedRoute>
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <BackButton />
-        <h1 className="text-4xl font-bold mb-8">Create New Invoice</h1>
+    <>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">إنشاء فاتورة جديدة</h1>
+        <Button onClick={handleCreateInvoice} disabled={saving}>
+          {saving ? "جاري الحفظ..." : "حفظ الفاتورة"}
+        </Button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Step 0: Company Selection */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main form */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Customer and Brand Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>1. Select Company (اختيار الشركة المصدّرة)</CardTitle>
+              <CardTitle>معلومات العميل والعلامة التجارية</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="company">Issuing Company *</Label>
-                <Select
-                  value={selectedCompany?.id || ""}
-                  onValueChange={handleCompanyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.company_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {companies.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No companies found. Please add a company in the admin panel first.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Company Information - Only shown when company is selected */}
-          {selectedCompany && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Company Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div>
-                  <Label htmlFor="company-info">Company Information (can be edited per invoice)</Label>
-                  <Textarea
-                    id="company-info"
-                    value={companyInfo}
-                    onChange={(e) => setCompanyInfo(e.target.value)}
-                    rows={3}
-                    placeholder="Company name, address, contact info..."
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 1: Customer Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>2. Select Customer</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="customer-search">Search Customer</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                    <Input
-                      id="customer-search"
-                      placeholder="Search by name or phone..."
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="pt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowCustomerDialog(true)}
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="customer">العميل</Label>
+                <div className="flex gap-2">
+                  <Select
+                    onValueChange={setSelectedCustomerId}
+                    value={selectedCustomerId || ""}
                   >
-                    <Plus size={16} className="mr-2" />
-                    New Customer
+                    <SelectTrigger id="customer">
+                      <SelectValue placeholder="اختر عميل" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name} ({c.phone})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setShowNewCustomerDialog(true)}
+                  >
+                    <Plus size={16} />
                   </Button>
                 </div>
               </div>
-
-              {selectedCustomer ? (
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-lg">{selectedCustomer.name}</p>
-                      {selectedCustomer.phone && (
-                        <p className="text-sm text-muted-foreground">
-                          Phone: {selectedCustomer.phone}
-                        </p>
-                      )}
-                      {selectedCustomer.email && (
-                        <p className="text-sm text-muted-foreground">
-                          Email: {selectedCustomer.email}
-                        </p>
-                      )}
-                      {selectedCustomer.address && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {selectedCustomer.address}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedCustomer(null)}
-                    >
-                      Change
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="border rounded-lg max-h-48 overflow-y-auto">
-                  {filteredCustomers.length === 0 ? (
-                    <p className="text-center py-4 text-muted-foreground">
-                      No customers found
-                    </p>
-                  ) : (
-                    <div className="divide-y">
-                      {filteredCustomers.map((customer) => (
-                        <button
-                          key={customer.id}
-                          type="button"
-                          onClick={() => setSelectedCustomer(customer)}
-                          className="w-full text-left p-3 hover:bg-muted/50 transition-colors"
-                        >
-                          <p className="font-medium">{customer.name}</p>
-                          {customer.phone && (
-                            <p className="text-sm text-muted-foreground">
-                              {customer.phone}
-                            </p>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Step 2: Brand Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>3. Select Brand</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="brand">Brand *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="brand">العلامة التجارية</Label>
                 <Select
-                  value={selectedBrand?.id || ""}
-                  onValueChange={(value) => {
-                    const brand = brands.find((b) => b.id === value);
-                    setSelectedBrand(brand || null);
-                  }}
+                  onValueChange={handleBrandChange}
+                  value={selectedBrandId || ""}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a brand" />
+                  <SelectTrigger id="brand">
+                    <SelectValue placeholder="اختر علامة تجارية" />
                   </SelectTrigger>
                   <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id}>
-                        {brand.name}
+                    {brands.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {selectedBrand && selectedBrand.logo_url && (
-                <div className="flex justify-center p-4 border rounded-lg bg-muted/50">
-                  <img
-                    src={selectedBrand.logo_url}
-                    alt={selectedBrand.name}
-                    className="max-h-24 object-contain"
-                  />
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* Step 3: Invoice Items */}
-          {selectedBrand && (
-            <Card>
-              <CardHeader>
-                <CardTitle>4. Add Invoice Items</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="currency">Currency</Label>
-                    <Select
-                      value={currency}
-                      onValueChange={(value: "IQD" | "USD") => {
-                        setCurrency(value);
-                        // Update all item prices when currency changes
-                        const updatedItems = items.map((item) => {
-                          const product = products.find((p) => p.id === item.product_id);
-                          if (product) {
-                            const newPrice =
-                              value === "IQD"
-                                ? product.unit_price_iqd ?? 0
-                                : product.unit_price_usd ?? 0;
-                            return {
-                              ...item,
-                              unit_price: newPrice,
-                              total: (item.quantity || 1) * newPrice,
-                            };
-                          }
-                          return item;
-                        });
-                        setItems(updatedItems);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="IQD">Iraqi Dinar (IQD)</SelectItem>
-                        <SelectItem value="USD">US Dollar (USD)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="invoice-date">Invoice Date</Label>
-                    <Input
-                      id="invoice-date"
-                      type="date"
-                      value={invoiceDate}
-                      onChange={(e) => setInvoiceDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
+          {/* Invoice Items */}
+          <Card>
+            <CardHeader>
+              <CardTitle>تفاصيل الفاتورة</CardTitle>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setShowProductSearchDialog(true)}
+                disabled={!selectedBrandId}
+              >
+                <Plus size={16} />
+                إضافة منتج
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>المنتج</TableHead>
+                      <TableHead>الرقم التسلسلي</TableHead>
+                      <TableHead className="w-[100px]">الكمية</TableHead>
+                      <TableHead className="w-[150px]">السعر</TableHead>
+                      <TableHead className="w-[150px]">المجموع</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoiceItems.length === 0 ? (
                       <TableRow>
-                        <TableHead className="w-[250px]">Product</TableHead>
-                        <TableHead>Serial Number</TableHead>
-                        <TableHead className="w-[100px]">Quantity</TableHead>
-                        <TableHead className="w-[120px]">Unit Price</TableHead>
-                        <TableHead className="w-[120px]">Total</TableHead>
-                        <TableHead className="w-[60px]"></TableHead>
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          لم يتم إضافة أي منتجات بعد
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((item, index) => (
+                    ) : (
+                      invoiceItems.map((item, index) => (
                         <TableRow key={index}>
-                          <TableCell>
-                            <Select
-                              value={item.product_id || ""}
-                              onValueChange={(value) =>
-                                updateItem(index, "product_id", value)
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select product" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map((product) => (
-                                  <SelectItem key={product.id} value={product.id}>
-                                    {product.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <TableCell className="font-medium">
+                            {item.description}
                           </TableCell>
-                          <TableCell>
-                            <Input
-                              value={item.serial_number || ""}
-                              onChange={(e) =>
-                                updateItem(index, "serial_number", e.target.value)
-                              }
-                              placeholder="Serial #"
-                            />
-                          </TableCell>
+                          <TableCell>{item.serial_number}</TableCell>
                           <TableCell>
                             <Input
                               type="number"
-                              min="1"
-                              value={item.quantity || 1}
+                              value={item.quantity || ""}
                               onChange={(e) =>
-                                updateItem(index, "quantity", parseInt(e.target.value) || 1)
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={item.unit_price || 0}
-                              onChange={(e) =>
-                                updateItem(
+                                handleItemChange(
                                   index,
-                                  "unit_price",
-                                  parseFloat(e.target.value) || 0
+                                  "quantity",
+                                  e.target.value
                                 )
                               }
+                              className="w-full"
+                              min="1"
                             />
                           </TableCell>
-                          <TableCell className="font-semibold">
-                            {currency === "USD"
-                              ? `$${(item.total || 0).toFixed(2)}`
-                              : `${(item.total || 0).toLocaleString()} IQD`}
+                          <TableCell>
+                            <Input
+                              type="number"
+                              value={item.price || ""}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  index,
+                                  "price",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full"
+                              dir="ltr"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {formatCurrencyDisplay(
+                              (item.quantity || 0) * (item.price || 0)
+                            )}
                           </TableCell>
                           <TableCell>
                             <Button
-                              type="button"
                               size="icon"
                               variant="ghost"
-                              onClick={() => removeItem(index)}
+                              onClick={() => handleRemoveItem(index)}
+                              className="text-destructive"
                             >
                               <Trash2 size={16} />
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-                <Button type="button" variant="outline" onClick={addItem}>
-                  <Plus size={16} className="mr-2" />
-                  Add Item
-                </Button>
-
-                <div className="border-t pt-4 space-y-3">
-                  <div className="flex justify-between text-lg">
-                    <span>Subtotal:</span>
-                    <span className="font-semibold">
-                      {currency === "USD"
-                        ? `$${calculateSubtotal().toFixed(2)}`
-                        : `${calculateSubtotal().toLocaleString()} IQD`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor="shipping">Shipping Cost:</Label>
-                    <Input
-                      id="shipping"
-                      type="number"
-                      step="0.01"
-                      value={shippingCost}
-                      onChange={(e) =>
-                        setShippingCost(parseFloat(e.target.value) || 0)
-                      }
-                      className="w-32 text-right"
-                    />
-                  </div>
-                  <div className="flex justify-between text-xl font-bold border-t pt-3">
-                    <span>Total:</span>
-                    <span>
-                      {currency === "USD"
-                        ? `$${calculateTotal().toFixed(2)}`
-                        : `${calculateTotal().toLocaleString()} IQD`}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Additional Details */}
-          {selectedBrand && items.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>5. Additional Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="warranty">Warranty Terms</Label>
-                  <Textarea
-                    id="warranty"
-                    value={warrantyText}
-                    onChange={(e) => setWarrantyText(e.target.value)}
-                    rows={4}
-                    placeholder="Warranty terms and conditions..."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Additional notes for this invoice..."
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/invoices")}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="min-w-32">
-              {loading ? "Creating..." : "Create Invoice"}
-            </Button>
-          </div>
-        </form>
-
-        {/* New Customer Dialog */}
-        <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Customer</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreateCustomer} className="space-y-4">
-              <div>
-                <Label htmlFor="new-customer-name">Name *</Label>
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Invoice Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>معلومات الفاتورة</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="invoice-number">رقم الفاتورة</Label>
                 <Input
-                  id="new-customer-name"
-                  value={newCustomerForm.name}
-                  onChange={(e) =>
-                    setNewCustomerForm({ ...newCustomerForm, name: e.target.value })
-                  }
-                  required
+                  id="invoice-number"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  readOnly
                 />
               </div>
-              <div>
-                <Label htmlFor="new-customer-phone">Phone</Label>
+              <div className="space-y-2">
+                <Label htmlFor="invoice-date">تاريخ الفاتورة</Label>
                 <Input
-                  id="new-customer-phone"
-                  value={newCustomerForm.phone}
-                  onChange={(e) =>
-                    setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })
-                  }
+                  id="invoice-date"
+                  type="date"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="new-customer-email">Email</Label>
-                <Input
-                  id="new-customer-email"
-                  type="email"
-                  value={newCustomerForm.email}
-                  onChange={(e) =>
-                    setNewCustomerForm({ ...newCustomerForm, email: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="new-customer-address">Address</Label>
-                <Textarea
-                  id="new-customer-address"
-                  value={newCustomerForm.address}
-                  onChange={(e) =>
-                    setNewCustomerForm({
-                      ...newCustomerForm,
-                      address: e.target.value,
-                    })
-                  }
-                  rows={2}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCustomerDialog(false)}
+              <div className="space-y-2">
+                <Label htmlFor="currency">العملة</Label>
+                <Select
+                  onValueChange={(val: "IQD" | "USD") => setCurrency(val)}
+                  value={currency}
                 >
-                  Cancel
-                </Button>
-                <Button type="submit">Create Customer</Button>
+                  <SelectTrigger id="currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IQD">دينار عراقي (IQD)</SelectItem>
+                    <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </CardContent>
+          </Card>
+
+          {/* Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>ملاحظات</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="أضف ملاحظات إضافية هنا..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={4}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Totals */}
+          <Card className="bg-muted/30">
+            <CardHeader>
+              <CardTitle>الإجمالي</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold tracking-tight">
+                {formatCurrencyDisplay(total)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* New Customer Dialog */}
+      <Dialog
+        open={showNewCustomerDialog}
+        onOpenChange={setShowNewCustomerDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إضافة عميل جديد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-customer-name">اسم العميل</Label>
+              <Input
+                id="new-customer-name"
+                value={newCustomer.name}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, name: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-customer-phone">رقم الهاتف</Label>
+              <Input
+                id="new-customer-phone"
+                value={newCustomer.phone}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, phone: e.target.value })
+                }
+                dir="ltr"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowNewCustomerDialog(false)}
+              >
+                إلغاء
+              </Button>
+              <Button onClick={handleSaveNewCustomer}>حفظ العميل</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Search Dialog */}
+      <Dialog
+        open={showProductSearchDialog}
+        onOpenChange={setShowProductSearchDialog}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              البحث عن منتج ({brands.find((b) => b.id === selectedBrandId)?.name}
+              )
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="relative mb-4">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={18}
+              />
+              <Input
+                placeholder="ابحث بالوصف أو الرقم التسلسلي..."
+                value={productSearchTerm}
+                onChange={(e) => filterProducts(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="max-h-[50vh] overflow-y-auto border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>المنتج</TableHead>
+                    <TableHead>السعر (IQD)</TableHead>
+                    <TableHead>السعر (USD)</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="font-medium">{p.description}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {p.serial_number}
+                        </div>
+                      </TableCell>
+                      <TableCell>{p.price_iqd?.toLocaleString()}</TableCell>
+                      <TableCell>${p.price_usd?.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAddProduct(p)}
+                        >
+                          إضافة
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+// This is the main page component
+export default function NewInvoicePage() {
+  const router = useRouter();
+  const { profile, loading } = useAuth();
+  const [permissionChecked, setPermissionChecked] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!profile?.can_create_invoices) {
+        console.warn("User does not have permission to create invoices");
+        router.push("/invoices");
+      } else {
+        setPermissionChecked(true);
+      }
+    }
+  }, [profile, loading, router]);
+
+  return (
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4">
+        <BackButton />
+        {permissionChecked && profile?.can_create_invoices ? (
+          <NewInvoiceForm />
+        ) : (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">
+              {loading || !permissionChecked ? "جاري التحقق من الصلاحيات..." : "غير مصرح"}
+            </h2>
+            {!loading && !profile?.can_create_invoices && (
+              <>
+                <p className="text-muted-foreground mb-6">
+                  ليس لديك صلاحية لإنشاء فواتير جديدة.
+                </p>
+                <Button onClick={() => router.push("/invoices")}>
+                  العودة إلى الفواتير
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );
