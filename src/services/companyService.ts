@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
-type CompanySettings = Database["public"]["Tables"]["company_settings"]["Row"];
-type CompanySettingsInsert = Database["public"]["Tables"]["company_settings"]["Insert"];
-type CompanySettingsUpdate = Database["public"]["Tables"]["company_settings"]["Update"];
+export type CompanySettings = Database["public"]["Tables"]["company_settings"]["Row"];
+export type CompanySettingsInsert = Database["public"]["Tables"]["company_settings"]["Insert"];
+export type CompanySettingsUpdate = Database["public"]["Tables"]["company_settings"]["Update"];
 
 export const companyService = {
   async getCompanySettings() {
