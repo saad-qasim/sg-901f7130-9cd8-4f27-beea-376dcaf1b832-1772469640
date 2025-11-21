@@ -120,7 +120,11 @@ export default function NewInvoicePage() {
   }, [invoiceItems]);
 
   const handleBrandChange = (brandId: string) => {
-    setSelectedBrandId(brandId);
+    setSelectedBrandId(brandId || null);
+    if (!brandId) {
+      setFilteredProducts(products);
+      return;
+    }
     const brandProducts = products.filter((p) => p.brand_id === brandId);
     setFilteredProducts(brandProducts);
   };
@@ -281,24 +285,19 @@ export default function NewInvoicePage() {
                 <div className="space-y-2">
                   <Label htmlFor="customer">العميل</Label>
                   <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <Select
-                        onValueChange={setSelectedCustomerId}
-                        value={selectedCustomerId || ""}
-                        dir="rtl"
-                      >
-                        <SelectTrigger id="customer">
-                          <SelectValue placeholder="اختر عميل" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {customers.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name} ({c.phone})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <select
+                      id="customer"
+                      className="flex-1 border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      value={selectedCustomerId || ""}
+                      onChange={(e) => setSelectedCustomerId(e.target.value || null)}
+                    >
+                      <option value="">اختر عميل</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.phone})
+                        </option>
+                      ))}
+                    </select>
                     <Button
                       size="icon"
                       variant="outline"
@@ -310,24 +309,19 @@ export default function NewInvoicePage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="brand">العلامة التجارية</Label>
-                  <div className="relative">
-                    <Select
-                      onValueChange={handleBrandChange}
-                      value={selectedBrandId || ""}
-                      dir="rtl"
-                    >
-                      <SelectTrigger id="brand">
-                        <SelectValue placeholder="اختر علامة تجارية" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {brands.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <select
+                    id="brand"
+                    className="w-full border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    value={selectedBrandId || ""}
+                    onChange={(e) => handleBrandChange(e.target.value)}
+                  >
+                    <option value="">اختر علامة تجارية</option>
+                    {brands.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </CardContent>
             </Card>
