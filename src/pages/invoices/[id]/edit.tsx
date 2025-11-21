@@ -123,9 +123,9 @@ export default function EditInvoicePage() {
 
       // Set other invoice fields
       setCurrency(data.currency as "IQD" | "USD");
-      setInvoiceDate(data.invoice_date.split("T")[0]);
-      setWarrantyEndDate(data.warranty_end_date.split("T")[0]);
-      setShippingCost(data.shipping_cost);
+      setInvoiceDate(data.invoice_date ? data.invoice_date.split("T")[0] : "");
+      setWarrantyEndDate(data.warranty_end_date ? data.warranty_end_date.split("T")[0] : "");
+      setShippingCost(data.shipping_cost ?? 0);
       setNotes(data.notes || "");
       setWarrantyText(data.warranty_text_snapshot || "");
 
