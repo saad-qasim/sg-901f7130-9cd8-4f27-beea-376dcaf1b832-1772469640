@@ -39,15 +39,6 @@ type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type Product = Database["public"]["Tables"]["products"]["Row"];
 type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
 
-interface InvoiceItem {
-  productId: string;
-  productName: string;
-  serialNumber: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-}
-
 export default function NewInvoicePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -70,7 +61,7 @@ export default function NewInvoicePage() {
 
   // Step 3: Invoice Items
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
-  const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [items, setItems] = useState<InvoiceItemInsert[]>([]);
   const [currency, setCurrency] = useState<"IQD" | "USD">("IQD");
   
   // Invoice Details
@@ -152,28 +143,27 @@ export default function NewInvoicePage() {
     setItems([
       ...items,
       {
-        productId: "",
-        productName: "",
-        serialNumber: "",
+        product_id: "",
+        product_name_snapshot: "",
+        serial_number: "",
         quantity: 1,
-        unitPrice: 0,
+        unit_price: 0,
         total: 0,
       },
     ]);
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const updateItem = (index: number, field: keyof InvoiceItemInsert, value: any) => {
     const updatedItems = [...items];
+    const currentItem = { ...updatedItems[index] };
     
-    if (field === "productId") {
+    if (field === "product_id") {
       const product = products.find((p) => p.id === value);
       if (product) {
-        updatedItems[index].productId = value;
-        updatedItems[index].productName = product.name;
-        updatedItems[index].unitPrice =
+        currentItem.product_id = value;
+        currentItem.product_name_snapshot = product.name;
+        currentItem.unit_price =
           currency === "IQD" ? product.unit_price_iqd : product.unit_price_usd;
-        updatedItems[index].total =
-          updatedItems[index].quantity * updatedItems[index].unitPrice;
         
         // Update warranty text if product has specific warranty
         if (product.warranty_text) {
@@ -181,13 +171,12 @@ export default function NewInvoicePage() {
         }
       }
     } else {
-      updatedItems[index] = { ...updatedItems[index], [field]: value };
-      
-      if (field === "quantity" || field === "unitPrice") {
-        updatedItems[index].total =
-          updatedItems[index].quantity * updatedItems[index].unitPrice;
-      }
+      (currentItem as any)[field] = value;
     }
+
+    // Recalculate total
+    currentItem.total = (currentItem.quantity || 1) * (currentItem.unit_price || 0);
+    updatedItems[index] = currentItem;
     
     setItems(updatedItems);
   };
@@ -197,7 +186,7 @@ export default function NewInvoicePage() {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.total, 0);
+    return items.reduce((sum, item) => sum + (item.total || 0), 0);
   };
 
   const calculateTotal = () => {
@@ -231,7 +220,7 @@ export default function NewInvoicePage() {
 
     // Validate all items have required fields
     for (const item of items) {
-      if (!item.productId || !item.serialNumber) {
+      if (!item.product_id || !item.serial_number) {
         alert("All items must have a product and serial number");
         return;
       }
@@ -260,19 +249,10 @@ export default function NewInvoicePage() {
         created_by: "system", // TODO: Replace with actual user ID when auth is implemented
       };
 
-      const invoiceItems: InvoiceItemInsert[] = items.map((item) => ({
-        product_id: item.productId,
-        product_name_snapshot: item.productName,
-        serial_number: item.serialNumber,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        total: item.total,
-      }));
-
-      // Pass invoice and items as a single object
+      // The `items` state now directly matches the required insert type
       const { id } = await invoiceService.createInvoiceWithItems({
         invoice: invoiceData,
-        items: invoiceItems,
+        items: items,
       });
 
       router.push(`/invoices/${id}`);
@@ -444,7 +424,7 @@ export default function NewInvoicePage() {
                       setCurrency(value);
                       // Update all item prices when currency changes
                       const updatedItems = items.map((item) => {
-                        const product = products.find((p) => p.id === item.productId);
+                        const product = products.find((p) => p.id === item.product_id);
                         if (product) {
                           const newPrice =
                             value === "IQD"
@@ -452,8 +432,8 @@ export default function NewInvoicePage() {
                               : product.unit_price_usd;
                           return {
                             ...item,
-                            unitPrice: newPrice,
-                            total: item.quantity * newPrice,
+                            unit_price: newPrice,
+                            total: (item.quantity || 1) * newPrice,
                           };
                         }
                         return item;
@@ -498,9 +478,9 @@ export default function NewInvoicePage() {
                       <TableRow key={index}>
                         <TableCell>
                           <Select
-                            value={item.productId}
+                            value={item.product_id || ""}
                             onValueChange={(value) =>
-                              updateItem(index, "productId", value)
+                              updateItem(index, "product_id", value)
                             }
                           >
                             <SelectTrigger>
@@ -517,9 +497,9 @@ export default function NewInvoicePage() {
                         </TableCell>
                         <TableCell>
                           <Input
-                            value={item.serialNumber}
+                            value={item.serial_number || ""}
                             onChange={(e) =>
-                              updateItem(index, "serialNumber", e.target.value)
+                              updateItem(index, "serial_number", e.target.value)
                             }
                             placeholder="Serial #"
                           />
@@ -528,7 +508,7 @@ export default function NewInvoicePage() {
                           <Input
                             type="number"
                             min="1"
-                            value={item.quantity}
+                            value={item.quantity || 1}
                             onChange={(e) =>
                               updateItem(index, "quantity", parseInt(e.target.value) || 1)
                             }
@@ -538,11 +518,11 @@ export default function NewInvoicePage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={item.unitPrice}
+                            value={item.unit_price || 0}
                             onChange={(e) =>
                               updateItem(
                                 index,
-                                "unitPrice",
+                                "unit_price",
                                 parseFloat(e.target.value) || 0
                               )
                             }
@@ -550,8 +530,8 @@ export default function NewInvoicePage() {
                         </TableCell>
                         <TableCell className="font-semibold">
                           {currency === "USD"
-                            ? `$${item.total.toFixed(2)}`
-                            : `${item.total.toLocaleString()} IQD`}
+                            ? `$${(item.total || 0).toFixed(2)}`
+                            : `${(item.total || 0).toLocaleString()} IQD`}
                         </TableCell>
                         <TableCell>
                           <Button
