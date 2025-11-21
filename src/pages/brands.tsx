@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { brandService } from "@/services/brandService";
 import { supabase } from "@/lib/supabaseClient";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
+import { createClient } from "@supabase/supabase-js";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 

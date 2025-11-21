@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { customerService } from "@/services/customerService";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

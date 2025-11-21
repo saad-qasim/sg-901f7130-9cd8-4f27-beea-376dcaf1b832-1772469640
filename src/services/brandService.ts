@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
+
+type BrandRow = Database["public"]["Tables"]["brands"]["Row"];
 
 export const brandService = {
   async getAllBrands(): Promise<Database["public"]["Tables"]["brands"]["Row"][]> {

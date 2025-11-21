@@ -1,8 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
+
+type CustomerRow = Database["public"]["Tables"]["customers"]["Row"];
 
 export const customerService = {
-  async getAllCustomers(): Promise<Database["public"]["Tables"]["customers"]["Row"][]> {
+  async getAllCustomers(): Promise<CustomerRow[]> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -12,7 +14,7 @@ export const customerService = {
     return data;
   },
 
-  async searchCustomers(query: string): Promise<Database["public"]["Tables"]["customers"]["Row"][]> {
+  async searchCustomers(query: string): Promise<CustomerRow[]> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -23,7 +25,7 @@ export const customerService = {
     return data;
   },
 
-  async getCustomerById(id: string): Promise<Database["public"]["Tables"]["customers"]["Row"]> {
+  async getCustomerById(id: string): Promise<CustomerRow> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -34,7 +36,7 @@ export const customerService = {
     return data;
   },
 
-  async createCustomer(customer: Database["public"]["Tables"]["customers"]["Insert"]): Promise<Database["public"]["Tables"]["customers"]["Row"]> {
+  async createCustomer(customer: Database["public"]["Tables"]["customers"]["Insert"]): Promise<CustomerRow> {
     const { data, error } = await supabase
       .from("customers")
       .insert([customer])
@@ -45,7 +47,7 @@ export const customerService = {
     return data;
   },
 
-  async updateCustomer(id: string, updates: Database["public"]["Tables"]["customers"]["Update"]): Promise<Database["public"]["Tables"]["customers"]["Row"]> {
+  async updateCustomer(id: string, updates: Database["public"]["Tables"]["customers"]["Update"]): Promise<CustomerRow> {
     const { data, error } = await supabase
       .from("customers")
       .update(updates)
