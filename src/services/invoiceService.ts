@@ -76,15 +76,18 @@ export const invoiceService = {
     return data as InvoiceWithRelations;
   },
 
-  async createInvoiceWithItems(data: InvoiceCreateData) {
+  async createInvoiceWithItems(data: { invoice: InvoiceInsert, items: InvoiceItemInsert[] }) {
+    // 1. Create the invoice
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
-      .insert([data.invoice])
+      .insert(data.invoice)
       .select()
       .single();
 
     if (invoiceError) throw invoiceError;
+    if (!invoice) throw new Error("Failed to create invoice record.");
 
+    // 2. Add invoice_id to each item and insert them
     const itemsWithInvoiceId = data.items.map(item => ({
       ...item,
       invoice_id: invoice.id
@@ -94,7 +97,11 @@ export const invoiceService = {
       .from("invoice_items")
       .insert(itemsWithInvoiceId);
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      // Optional: attempt to delete the orphaned invoice if items fail
+      await supabase.from("invoices").delete().eq("id", invoice.id);
+      throw itemsError;
+    }
 
     return invoice as Invoice;
   },

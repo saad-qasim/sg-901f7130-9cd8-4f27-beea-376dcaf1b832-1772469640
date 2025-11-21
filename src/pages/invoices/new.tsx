@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService } from "@/services/invoiceService";
@@ -268,12 +267,13 @@ export default function NewInvoicePage() {
         total: item.total,
       }));
 
-      const invoice = await invoiceService.createInvoiceWithItems(
-        invoiceData,
-        invoiceItems
-      );
+      // Pass invoice and items as a single object
+      const { id } = await invoiceService.createInvoiceWithItems({
+        invoice: invoiceData,
+        items: invoiceItems,
+      });
 
-      router.push(`/invoices/${invoice.id}`);
+      router.push(`/invoices/${id}`);
     } catch (error) {
       console.error("Error creating invoice:", error);
       alert("Failed to create invoice. Please try again.");

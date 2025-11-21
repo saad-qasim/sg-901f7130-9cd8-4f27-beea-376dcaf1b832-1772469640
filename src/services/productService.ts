@@ -31,12 +31,17 @@ export const productService = {
   async getProductsByBrand(brandId: string) {
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select(`
+        *,
+        brands (
+          name
+        )
+      `)
       .eq("brand_id", brandId)
       .order("name", { ascending: true });
 
     if (error) throw error;
-    return data as Product[];
+    return data as ProductWithBrand[];
   },
 
   async getProductById(id: string) {
