@@ -115,7 +115,7 @@ export default function InvoiceDetailPage() {
               className="gap-2"
             >
               <Edit size={16} />
-              Edit Invoice
+              تعديل الفاتورة
             </Button>
             <Button
               variant="outline"
@@ -142,7 +142,9 @@ export default function InvoiceDetailPage() {
               {/* Header with Brand Logo */}
               <div className="flex justify-between items-start border-b pb-6">
                 <div>
-                  <h1 className="text-4xl font-bold mb-2">INVOICE</h1>
+                  <h1 className="text-4xl font-bold mb-2">
+                    {invoice.invoice_title || "فاتورة بيع"}
+                  </h1>
                   <p className="text-2xl font-semibold text-primary">
                     {invoice.invoice_number}
                   </p>

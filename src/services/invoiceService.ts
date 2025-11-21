@@ -254,5 +254,44 @@ export const invoiceService = {
       .in("id", ids);
 
     if (error) throw error;
+  },
+
+  async updateInvoiceWithItems(
+    id: string,
+    invoiceData: Database["public"]["Tables"]["invoices"]["Update"],
+    itemsData: InvoiceItemInsertType[]
+  ): Promise<InvoiceRow> {
+    // 1. Update the invoice
+    const { data: invoice, error: invoiceError } = await supabase
+      .from("invoices")
+      .update(invoiceData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (invoiceError) throw invoiceError;
+    if (!invoice) throw new Error("Failed to update invoice record.");
+
+    // 2. Delete existing items
+    const { error: deleteError } = await supabase
+      .from("invoice_items")
+      .delete()
+      .eq("invoice_id", id);
+
+    if (deleteError) throw deleteError;
+
+    // 3. Insert new items
+    const itemsWithInvoiceId = itemsData.map((item) => ({
+      ...item,
+      invoice_id: id,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("invoice_items")
+      .insert(itemsWithInvoiceId);
+
+    if (itemsError) throw itemsError;
+
+    return invoice;
   }
 };
