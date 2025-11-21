@@ -1,11 +1,13 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
-export interface ProductWithBrand extends Database["public"]["Tables"]["products"]["Row"] {
+type ProductRow = Database["public"]["Tables"]["products"]["Row"];
+
+export type ProductWithBrand = ProductRow & {
   brands: {
     name: string;
-  };
-}
+  } | null;
+};
 
 export const productService = {
   async getAllProducts(): Promise<ProductWithBrand[]> {

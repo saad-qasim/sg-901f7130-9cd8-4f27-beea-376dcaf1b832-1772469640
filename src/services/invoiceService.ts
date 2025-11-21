@@ -1,23 +1,28 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
-export interface InvoiceWithRelations extends Database["public"]["Tables"]["invoices"]["Row"] {
+type InvoiceRow = Database["public"]["Tables"]["invoices"]["Row"];
+type InvoiceItemRow = Database["public"]["Tables"]["invoice_items"]["Row"];
+type InvoiceInsertType = Database["public"]["Tables"]["invoices"]["Insert"];
+type InvoiceItemInsertType = Database["public"]["Tables"]["invoice_items"]["Insert"];
+
+export type InvoiceWithRelations = InvoiceRow & {
   customers: {
     name: string;
     phone: string | null;
     address: string | null;
     email: string | null;
-  };
+  } | null;
   brands: {
     name: string;
     logo_url: string | null;
-  };
-  invoice_items: Database["public"]["Tables"]["invoice_items"]["Row"][];
-}
+  } | null;
+  invoice_items: InvoiceItemRow[];
+};
 
 export interface InvoiceCreateData {
-  invoice: Database["public"]["Tables"]["invoices"]["Insert"];
-  items: Database["public"]["Tables"]["invoice_items"]["Insert"][];
+  invoice: InvoiceInsertType;
+  items: InvoiceItemInsertType[];
 }
 
 export const invoiceService = {
@@ -70,9 +75,9 @@ export const invoiceService = {
   },
 
   async createInvoiceWithItems(data: {
-    invoice: Database["public"]["Tables"]["invoices"]["Insert"];
-    items: Omit<Database["public"]["Tables"]["invoice_items"]["Insert"], "invoice_id">[];
-  }): Promise<Database["public"]["Tables"]["invoices"]["Row"]> {
+    invoice: InvoiceInsertType;
+    items: Omit<InvoiceItemInsertType, "invoice_id">[];
+  }): Promise<InvoiceRow> {
     // 1. Create the invoice
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")

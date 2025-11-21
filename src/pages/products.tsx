@@ -290,7 +290,7 @@ export default function ProductsPage() {
               {products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.brands.name}</TableCell>
+                  <TableCell>{product.brands?.name || "—"}</TableCell>
                   <TableCell>{product.model_number || "—"}</TableCell>
                   <TableCell>
                     {product.unit_price_iqd
