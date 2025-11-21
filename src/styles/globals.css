@@ -95,4 +95,64 @@
   .container {
     @apply mx-auto px-4 md:px-6 lg:px-8 max-w-7xl w-full;
   }
+  
+  /* A4 Invoice Container */
+  .invoice-a4 {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 15mm;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Print-specific styles */
+@media print {
+  body {
+    background: white !important;
+  }
+
+  .invoice-a4 {
+    box-shadow: none;
+    margin: 0;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  /* Hide buttons and non-printable elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Optimize text sizes for printing */
+  .invoice-a4 h1 {
+    font-size: 24px;
+  }
+
+  .invoice-a4 h2 {
+    font-size: 18px;
+  }
+
+  .invoice-a4 h3 {
+    font-size: 14px;
+  }
+
+  .invoice-a4 p,
+  .invoice-a4 td,
+  .invoice-a4 th {
+    font-size: 11px;
+  }
+
+  /* Remove unnecessary spacing in print */
+  .invoice-a4 .space-y-8 > * + * {
+    margin-top: 1rem;
+  }
 }
