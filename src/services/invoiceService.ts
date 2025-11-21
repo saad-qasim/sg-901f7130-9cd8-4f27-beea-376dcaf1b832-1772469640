@@ -236,5 +236,23 @@ export const invoiceService = {
     );
 
     return uniqueInvoices;
+  },
+
+  async deleteInvoice(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("invoices")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+  },
+
+  async deleteInvoices(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from("invoices")
+      .delete()
+      .in("id", ids);
+
+    if (error) throw error;
   }
 };

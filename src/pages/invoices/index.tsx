@@ -4,6 +4,17 @@ import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -12,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Search } from "lucide-react";
+import { Plus, Eye, Search, Trash2 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 
 type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
@@ -23,6 +34,11 @@ export default function InvoicesListPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadInvoices();
@@ -33,6 +49,7 @@ export default function InvoicesListPage() {
       setLoading(true);
       const data = await invoiceService.getAllInvoices();
       setInvoices(data);
+      setSelectedInvoices(new Set()); // Clear selection when reloading
     } catch (error) {
       console.error("Error loading invoices:", error);
       alert("Failed to load invoices");
@@ -54,6 +71,7 @@ export default function InvoicesListPage() {
       setSearching(true);
       const results = await invoiceService.searchInvoices(searchTerm.trim());
       setInvoices(results);
+      setSelectedInvoices(new Set()); // Clear selection when searching
     } catch (error) {
       console.error("Error searching invoices:", error);
       alert("Failed to search invoices. Please try again.");
@@ -71,6 +89,68 @@ export default function InvoicesListPage() {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedInvoices(new Set(invoices.map(inv => inv.id)));
+    } else {
+      setSelectedInvoices(new Set());
+    }
+  };
+
+  const handleSelectInvoice = (invoiceId: string, checked: boolean) => {
+    const newSelected = new Set(selectedInvoices);
+    if (checked) {
+      newSelected.add(invoiceId);
+    } else {
+      newSelected.delete(invoiceId);
+    }
+    setSelectedInvoices(newSelected);
+  };
+
+  const handleDeleteClick = (invoiceId: string) => {
+    setInvoiceToDelete(invoiceId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!invoiceToDelete) return;
+
+    try {
+      setDeleting(true);
+      await invoiceService.deleteInvoice(invoiceToDelete);
+      setShowDeleteDialog(false);
+      setInvoiceToDelete(null);
+      await loadInvoices();
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      alert("حدث خطأ أثناء حذف الفاتورة، حاول مرة أخرى.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedInvoices.size === 0) {
+      alert("لم تقم بتحديد أي فاتورة.");
+      return;
+    }
+    setShowBulkDeleteDialog(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    try {
+      setDeleting(true);
+      await invoiceService.deleteInvoices(Array.from(selectedInvoices));
+      setShowBulkDeleteDialog(false);
+      await loadInvoices();
+    } catch (error) {
+      console.error("Error deleting invoices:", error);
+      alert("حدث خطأ أثناء حذف الفاتورة، حاول مرة أخرى.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -85,6 +165,9 @@ export default function InvoicesListPage() {
     }
     return `${amount.toLocaleString()} IQD`;
   };
+
+  const allSelected = invoices.length > 0 && selectedInvoices.size === invoices.length;
+  const someSelected = selectedInvoices.size > 0 && selectedInvoices.size < invoices.length;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -133,6 +216,20 @@ export default function InvoicesListPage() {
         )}
       </div>
 
+      {/* Bulk Delete Button */}
+      {selectedInvoices.size > 0 && (
+        <div className="mb-4">
+          <Button
+            variant="destructive"
+            onClick={handleBulkDeleteClick}
+            className="gap-2"
+          >
+            <Trash2 size={16} />
+            حذف الفواتير المحددة ({selectedInvoices.size})
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <p>Loading invoices...</p>
       ) : invoices.length === 0 ? (
@@ -146,17 +243,34 @@ export default function InvoicesListPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
+                    className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                  />
+                </TableHead>
                 <TableHead>Invoice #</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead>Total</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {invoices.map((invoice) => (
                 <TableRow key={invoice.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedInvoices.has(invoice.id)}
+                      onCheckedChange={(checked) => 
+                        handleSelectInvoice(invoice.id, checked as boolean)
+                      }
+                      aria-label={`Select invoice ${invoice.invoice_number}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
                     {invoice.invoice_number}
                   </TableCell>
@@ -167,13 +281,25 @@ export default function InvoicesListPage() {
                     {formatCurrency(invoice.total, invoice.currency)}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => router.push(`/invoices/${invoice.id}`)}
-                    >
-                      <Eye size={16} />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => router.push(`/invoices/${invoice.id}`)}
+                        title="View invoice"
+                      >
+                        <Eye size={16} />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeleteClick(invoice.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Delete invoice"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -181,6 +307,52 @@ export default function InvoicesListPage() {
           </Table>
         </div>
       )}
+
+      {/* Single Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle dir="rtl">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription dir="rtl">
+              هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleting ? "جاري الحذف..." : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle dir="rtl">تأكيد حذف متعدد</AlertDialogTitle>
+            <AlertDialogDescription dir="rtl">
+              هل تريد حذف جميع الفواتير المحددة؟ ({selectedInvoices.size} فاتورة)
+              <br />
+              لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleting ? "جاري الحذف..." : "حذف الكل"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
