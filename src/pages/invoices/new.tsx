@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
@@ -272,6 +273,7 @@ export default function NewInvoicePage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
+      <BackButton />
       <h1 className="text-4xl font-bold mb-8">Create New Invoice</h1>
 
       <form onSubmit={handleSubmit} className="space-y-8">

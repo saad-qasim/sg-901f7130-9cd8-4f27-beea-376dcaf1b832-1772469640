@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, Download, Edit, ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 export default function InvoiceDetailPage() {
   const router = useRouter();
@@ -105,37 +105,28 @@ export default function InvoiceDetailPage() {
     <>
       {/* Action Buttons - Hidden when printing */}
       <div className="container mx-auto py-4 px-4 print:hidden">
-        <div className="flex justify-between items-center">
+        <BackButton />
+        <div className="flex justify-end gap-2 mt-2">
           <Button
-            variant="ghost"
-            onClick={() => router.push("/invoices")}
+            variant="outline"
+            onClick={() => router.push(`/invoices/${id}/edit`)}
             className="gap-2"
           >
-            <ArrowLeft size={16} />
-            Back to Invoices
+            <Edit size={16} />
+            Edit Invoice
           </Button>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/invoices/${id}/edit`)}
-              className="gap-2"
-            >
-              <Edit size={16} />
-              Edit Invoice
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleDownloadPDF}
-              className="gap-2"
-            >
-              <Download size={16} />
-              Download PDF
-            </Button>
-            <Button onClick={handlePrint} className="gap-2">
-              <Printer size={16} />
-              Print
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={handleDownloadPDF}
+            className="gap-2"
+          >
+            <Download size={16} />
+            Download PDF
+          </Button>
+          <Button onClick={handlePrint} className="gap-2">
+            <Printer size={16} />
+            Print
+          </Button>
         </div>
       </div>
 

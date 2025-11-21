@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { customerService } from "@/services/customerService";
 import { Database } from "@/types/database";
@@ -22,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];
@@ -122,6 +122,7 @@ export default function CustomersPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BackButton />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Customers</h1>
         <Dialog

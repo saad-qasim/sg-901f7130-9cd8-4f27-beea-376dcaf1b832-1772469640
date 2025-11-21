@@ -1,4 +1,3 @@
-
 import { useState, useEffect, ChangeEvent } from "react";
 import { brandService } from "@/services/brandService";
 import { supabase } from "@/lib/supabaseClient";
@@ -23,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
@@ -165,6 +165,7 @@ export default function BrandsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BackButton />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Brands</h1>
         <Dialog open={dialogOpen} onOpenChange={(open) => {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/lib/supabaseClient";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, ExternalLink, Package } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 interface SearchResult {
   invoice_id: string;
@@ -104,6 +104,7 @@ export default function SearchSerialPage() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
+      <BackButton />
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">Serial Number Search</h1>
         <p className="text-muted-foreground">

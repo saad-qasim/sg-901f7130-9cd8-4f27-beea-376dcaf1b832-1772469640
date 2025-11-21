@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { productService, ProductWithBrand } from "@/services/productService";
 import { brandService } from "@/services/brandService";
@@ -30,6 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Edit } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
@@ -128,6 +128,7 @@ export default function ProductsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BackButton />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Products</h1>
         <Dialog open={showDialog} onOpenChange={(open) => {

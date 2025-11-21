@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Eye } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
 
@@ -53,6 +54,7 @@ export default function InvoicesListPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <BackButton />
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Invoices</h1>
         <Button
