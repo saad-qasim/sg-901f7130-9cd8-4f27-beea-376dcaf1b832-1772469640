@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
 
-export type CompanySettings = Database["public"]["Tables"]["companies"]["Row"];
+export type CompanySettings = Database["public"]["Tables"]["company_settings"]["Row"];
 export type CompanySettingsInsert = Database["public"]["Tables"]["company_settings"]["Insert"];
 export type CompanySettingsUpdate = Database["public"]["Tables"]["company_settings"]["Update"];
 
