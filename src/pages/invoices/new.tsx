@@ -4,7 +4,7 @@ import { invoiceService } from "@/services/invoiceService";
 import { customerService } from "@/services/customerService";
 import { brandService } from "@/services/brandService";
 import { productService, ProductWithBrand } from "@/services/productService";
-import { companyService } from "@/services/companyService";
+import { companyService, CompanySettings } from "@/services/companyService";
 import { Database } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,10 @@ export default function NewInvoicePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
+  // Step 0: Company Selection
+  const [companies, setCompanies] = useState<CompanySettings[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<CompanySettings | null>(null);
+  
   // Step 1: Customer Selection
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -75,9 +79,9 @@ export default function NewInvoicePage() {
   const [companyInfo, setCompanyInfo] = useState("");
 
   useEffect(() => {
+    loadCompanies();
     loadCustomers();
     loadBrands();
-    loadCompanySettings();
   }, []);
 
   useEffect(() => {
@@ -86,6 +90,22 @@ export default function NewInvoicePage() {
       setWarrantyText(selectedBrand.warranty_default_text || "");
     }
   }, [selectedBrand]);
+
+  const loadCompanies = async () => {
+    try {
+      const data = await companyService.getAllCompanies();
+      setCompanies(data);
+      
+      // Auto-select if only one company exists
+      if (data.length === 1) {
+        setSelectedCompany(data[0]);
+        setCompanyInfo(data[0].company_info_text || "");
+        setCurrency((data[0].default_currency as "IQD" | "USD") || "IQD");
+      }
+    } catch (error) {
+      console.error("Error loading companies:", error);
+    }
+  };
 
   const loadCustomers = async () => {
     try {
@@ -114,15 +134,12 @@ export default function NewInvoicePage() {
     }
   };
 
-  const loadCompanySettings = async () => {
-    try {
-      const settings = await companyService.getCompanySettings();
-      if (settings) {
-        setCompanyInfo(settings.company_info_text || "");
-        setCurrency(settings.default_currency as "IQD" | "USD");
-      }
-    } catch (error) {
-      console.error("Error loading company settings:", error);
+  const handleCompanyChange = (companyId: string) => {
+    const company = companies.find((c) => c.id === companyId);
+    if (company) {
+      setSelectedCompany(company);
+      setCompanyInfo(company.company_info_text || "");
+      setCurrency((company.default_currency as "IQD" | "USD") || "IQD");
     }
   };
 
@@ -206,6 +223,10 @@ export default function NewInvoicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!selectedCompany) {
+      alert("Please select a company");
+      return;
+    }
     if (!selectedCustomer) {
       alert("Please select a customer");
       return;
@@ -240,6 +261,7 @@ export default function NewInvoicePage() {
         warranty_end_date: warrantyEndDate.toISOString().split("T")[0],
         customer_id: selectedCustomer.id,
         brand_id: selectedBrand.id,
+        company_id: selectedCompany.id,
         company_info_snapshot: companyInfo,
         warranty_text_snapshot: warrantyText,
         currency,
@@ -277,29 +299,64 @@ export default function NewInvoicePage() {
       <h1 className="text-4xl font-bold mb-8">Create New Invoice</h1>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Company Information - Moved to top */}
+        {/* Step 0: Company Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>Company Information</CardTitle>
+            <CardTitle>1. Select Company (اختيار الشركة المصدّرة)</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="company-info">Company Information</Label>
-              <Textarea
-                id="company-info"
-                value={companyInfo}
-                onChange={(e) => setCompanyInfo(e.target.value)}
-                rows={3}
-                placeholder="Company name, address, contact info..."
-              />
+              <Label htmlFor="company">Issuing Company *</Label>
+              <Select
+                value={selectedCompany?.id || ""}
+                onValueChange={handleCompanyChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.company_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            {companies.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No companies found. Please add a company in the admin panel first.
+              </p>
+            )}
           </CardContent>
         </Card>
+
+        {/* Company Information - Only shown when company is selected */}
+        {selectedCompany && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Company Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label htmlFor="company-info">Company Information (can be edited per invoice)</Label>
+                <Textarea
+                  id="company-info"
+                  value={companyInfo}
+                  onChange={(e) => setCompanyInfo(e.target.value)}
+                  rows={3}
+                  placeholder="Company name, address, contact info..."
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Step 1: Customer Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>1. Select Customer</CardTitle>
+            <CardTitle>2. Select Customer</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
@@ -392,7 +449,7 @@ export default function NewInvoicePage() {
         {/* Step 2: Brand Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>2. Select Brand</CardTitle>
+            <CardTitle>3. Select Brand</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -433,7 +490,7 @@ export default function NewInvoicePage() {
         {selectedBrand && (
           <Card>
             <CardHeader>
-              <CardTitle>3. Add Invoice Items</CardTitle>
+              <CardTitle>4. Add Invoice Items</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
@@ -614,7 +671,7 @@ export default function NewInvoicePage() {
         {selectedBrand && items.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>4. Additional Details</CardTitle>
+              <CardTitle>5. Additional Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
