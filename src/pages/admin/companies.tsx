@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type CompanySettings = Database["public"]["Tables"]["company_settings"]["Row"];
 

@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Eye, Search, Trash2 } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
 

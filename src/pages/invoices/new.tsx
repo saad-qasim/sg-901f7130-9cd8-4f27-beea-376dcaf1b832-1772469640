@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];

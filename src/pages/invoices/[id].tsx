@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, Download, Edit, ArrowLeft } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 export default function InvoiceDetailPage() {
   const router = useRouter();

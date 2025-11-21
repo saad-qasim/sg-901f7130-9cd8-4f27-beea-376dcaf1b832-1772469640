@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Search } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];

@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];

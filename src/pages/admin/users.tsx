@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Edit, CheckCircle2, XCircle, Trash2 } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+import BackButton from "@/components/BackButton";
 import {
   AlertDialog,
   AlertDialogAction,
