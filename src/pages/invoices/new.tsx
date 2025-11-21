@@ -246,7 +246,7 @@ export default function NewInvoicePage() {
         shipping_cost: shippingCost,
         total: calculateTotal(),
         notes,
-        created_by: "system", // TODO: Replace with actual user ID when auth is implemented
+        created_by: null, // TODO: Replace with actual user ID when auth is implemented
       };
 
       // The `items` state now directly matches the required insert type

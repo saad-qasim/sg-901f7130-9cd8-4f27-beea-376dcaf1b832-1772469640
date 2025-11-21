@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
@@ -9,15 +8,9 @@ export const companyService = {
     const { data, error } = await supabase
       .from("company_settings")
       .select("*")
-      .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        return null;
-      }
-      throw error;
-    }
-    return data as CompanySettings;
+    if (error) throw error;
+    return data as CompanySettings | null;
   }
 };
