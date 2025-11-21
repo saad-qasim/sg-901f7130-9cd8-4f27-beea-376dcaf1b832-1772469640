@@ -1,4 +1,3 @@
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
@@ -35,9 +34,13 @@ export default async function handler(
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    }
+
     const supabaseAdmin = getServiceRoleClient();
 
-    // Create user in auth.users using Admin API
+    // Create user in auth.users using Admin API with the provided password
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -76,18 +79,9 @@ export default async function handler(
       return res.status(400).json({ error: profileError.message });
     }
 
-    // Try to send password reset email
-    try {
-      await supabaseAdmin.auth.resetPasswordForEmail(email);
-    } catch (error) {
-      console.error("Failed to send password reset email:", error);
-      // Don't fail the request if email sending fails
-    }
-
     return res.status(200).json({
       success: true,
       userId: authData.user.id,
-      temporaryPassword: password,
     });
   } catch (error: any) {
     console.error("Unexpected error:", error);

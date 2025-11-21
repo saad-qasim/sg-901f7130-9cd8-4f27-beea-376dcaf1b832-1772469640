@@ -62,7 +62,6 @@ export default function AdminUsersPage() {
   const [deleting, setDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [tempPassword, setTempPassword] = useState<string>("");
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -78,10 +77,12 @@ export default function AdminUsersPage() {
   });
 
   // Create form state
-  const [createForm, setCreateForm] = useState<CreateUserData>({
+  const [createForm, setCreateForm] = useState({
     name: "",
     email: "",
     phone: "",
+    password: "",
+    confirmPassword: "",
     role: "viewer",
     can_create_invoices: false,
     can_delete_invoices: false,
@@ -148,6 +149,8 @@ export default function AdminUsersPage() {
       name: "",
       email: "",
       phone: "",
+      password: "",
+      confirmPassword: "",
       role: "viewer",
       can_create_invoices: false,
       can_delete_invoices: false,
@@ -159,7 +162,6 @@ export default function AdminUsersPage() {
     setShowCreateDialog(true);
     setSuccessMessage("");
     setErrorMessage("");
-    setTempPassword("");
   };
 
   const handleCreateSave = async () => {
@@ -168,18 +170,54 @@ export default function AdminUsersPage() {
       return;
     }
 
+    if (!createForm.password.trim() || !createForm.confirmPassword.trim()) {
+      setErrorMessage("الرجاء إدخال كلمة المرور وتأكيدها");
+      return;
+    }
+
+    if (createForm.password !== createForm.confirmPassword) {
+      setErrorMessage("كلمتا المرور غير متطابقتين.");
+      return;
+    }
+
+    if (createForm.password.length < 6) {
+      setErrorMessage("يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل");
+      return;
+    }
+
     try {
       setSaving(true);
-      const result = await userService.createUser(createForm);
-      setTempPassword(result.temporaryPassword);
-      setSuccessMessage(`تم إنشاء الموظف بنجاح. كلمة المرور المؤقتة: ${result.temporaryPassword}`);
-      
-      // Don't close dialog immediately so user can see the password
-      setTimeout(() => {
-        setShowCreateDialog(false);
-        setTempPassword("");
-        loadUsers();
-      }, 10000); // Close after 10 seconds
+      const response = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: createForm.email,
+          password: createForm.password,
+          userData: {
+            name: createForm.name,
+            phone: createForm.phone,
+            role: createForm.role,
+            can_create_invoices: createForm.can_create_invoices,
+            can_delete_invoices: createForm.can_delete_invoices,
+            can_edit_invoices: createForm.can_edit_invoices,
+            can_add_brand: createForm.can_add_brand,
+            can_add_product: createForm.can_add_product,
+            can_view_stats: createForm.can_view_stats,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "فشل إنشاء الموظف");
+      }
+
+      setSuccessMessage("تم إنشاء الموظف بنجاح.");
+      setShowCreateDialog(false);
+      await loadUsers();
     } catch (error: any) {
       console.error("Error creating user:", error);
       setErrorMessage(error.message || "حدث خطأ أثناء إنشاء الموظف");
@@ -514,23 +552,6 @@ export default function AdminUsersPage() {
               </DialogDescription>
             </DialogHeader>
 
-            {tempPassword && (
-              <Alert className="border-green-500 bg-green-50">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  <div className="space-y-1">
-                    <p className="font-semibold">تم إنشاء الموظف بنجاح!</p>
-                    <p className="font-mono bg-white p-2 rounded border">
-                      كلمة المرور المؤقتة: {tempPassword}
-                    </p>
-                    <p className="text-xs">
-                      الرجاء نسخ كلمة المرور وإرسالها للموظف. سيتم إغلاق هذه النافذة تلقائياً.
-                    </p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="create-name">الاسم *</Label>
@@ -552,6 +573,36 @@ export default function AdminUsersPage() {
                   onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                   placeholder="email@example.com"
                   disabled={saving}
+                  dir="ltr"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-password">كلمة المرور *</Label>
+                <Input
+                  id="create-password"
+                  type="password"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  placeholder="••••••••"
+                  disabled={saving}
+                  dir="ltr"
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-500">يجب أن تحتوي على 6 أحرف على الأقل</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-confirm-password">تأكيد كلمة المرور *</Label>
+                <Input
+                  id="create-confirm-password"
+                  type="password"
+                  value={createForm.confirmPassword}
+                  onChange={(e) => setCreateForm({ ...createForm, confirmPassword: e.target.value })}
+                  placeholder="••••••••"
+                  disabled={saving}
+                  dir="ltr"
+                  minLength={6}
                 />
               </div>
 
@@ -681,7 +732,7 @@ export default function AdminUsersPage() {
               >
                 إلغاء
               </Button>
-              <Button onClick={handleCreateSave} disabled={saving || !!tempPassword}>
+              <Button onClick={handleCreateSave} disabled={saving}>
                 {saving ? "جاري الإنشاء..." : "إنشاء موظف"}
               </Button>
             </DialogFooter>
