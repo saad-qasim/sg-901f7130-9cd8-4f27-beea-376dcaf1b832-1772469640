@@ -23,14 +23,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Search, Trash2 } from "lucide-react";
+import { Plus, Eye, Search, Trash2, Edit } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
 
 export default function InvoicesListPage() {
   const router = useRouter();
+  const { profile } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,6 +43,11 @@ export default function InvoicesListPage() {
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Extract permissions from profile
+  const canCreate = profile?.can_create_invoices ?? false;
+  const canDelete = profile?.can_delete_invoices ?? false;
+  const canEdit = profile?.can_edit_invoices ?? false;
+
   useEffect(() => {
     loadInvoices();
   }, []);
@@ -50,7 +57,7 @@ export default function InvoicesListPage() {
       setLoading(true);
       const data = await invoiceService.getAllInvoices();
       setInvoices(data);
-      setSelectedInvoices(new Set()); // Clear selection when reloading
+      setSelectedInvoices(new Set());
     } catch (error) {
       console.error("Error loading invoices:", error);
       alert("Failed to load invoices");
@@ -62,7 +69,6 @@ export default function InvoicesListPage() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // If search term is empty or less than 2 characters, reload all invoices
     if (!searchTerm.trim() || searchTerm.trim().length < 2) {
       loadInvoices();
       return;
@@ -72,7 +78,7 @@ export default function InvoicesListPage() {
       setSearching(true);
       const results = await invoiceService.searchInvoices(searchTerm.trim());
       setInvoices(results);
-      setSelectedInvoices(new Set()); // Clear selection when searching
+      setSelectedInvoices(new Set());
     } catch (error) {
       console.error("Error searching invoices:", error);
       alert("Failed to search invoices. Please try again.");
@@ -84,7 +90,6 @@ export default function InvoicesListPage() {
   const handleSearchInputChange = (value: string) => {
     setSearchTerm(value);
     
-    // If search is cleared, reload all invoices
     if (!value.trim()) {
       loadInvoices();
     }
@@ -176,16 +181,17 @@ export default function InvoicesListPage() {
         <BackButton />
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Invoices</h1>
-          <Button
-            className="gap-2"
-            onClick={() => router.push("/invoices/new")}
-          >
-            <Plus size={16} />
-            New Invoice
-          </Button>
+          {canCreate && (
+            <Button
+              className="gap-2"
+              onClick={() => router.push("/invoices/new")}
+            >
+              <Plus size={16} />
+              إنشاء فاتورة جديدة
+            </Button>
+          )}
         </div>
 
-        {/* Search Input */}
         <div className="mb-6">
           <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl">
             <div className="flex-1">
@@ -218,8 +224,7 @@ export default function InvoicesListPage() {
           )}
         </div>
 
-        {/* Bulk Delete Button */}
-        {selectedInvoices.size > 0 && (
+        {canDelete && selectedInvoices.size > 0 && (
           <div className="mb-4">
             <Button
               variant="destructive"
@@ -245,14 +250,16 @@ export default function InvoicesListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all"
-                      className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                    />
-                  </TableHead>
+                  {canDelete && (
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                        className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
@@ -264,15 +271,17 @@ export default function InvoicesListPage() {
               <TableBody>
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedInvoices.has(invoice.id)}
-                        onCheckedChange={(checked) => 
-                          handleSelectInvoice(invoice.id, checked as boolean)
-                        }
-                        aria-label={`Select invoice ${invoice.invoice_number}`}
-                      />
-                    </TableCell>
+                    {canDelete && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedInvoices.has(invoice.id)}
+                          onCheckedChange={(checked) => 
+                            handleSelectInvoice(invoice.id, checked as boolean)
+                          }
+                          aria-label={`Select invoice ${invoice.invoice_number}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium">
                       {invoice.invoice_number}
                     </TableCell>
@@ -292,15 +301,27 @@ export default function InvoicesListPage() {
                         >
                           <Eye size={16} />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDeleteClick(invoice.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Delete invoice"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => router.push(`/invoices/${invoice.id}/edit`)}
+                            title="Edit invoice"
+                          >
+                            <Edit size={16} />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(invoice.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete invoice"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -310,7 +331,6 @@ export default function InvoicesListPage() {
           </div>
         )}
 
-        {/* Single Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -332,7 +352,6 @@ export default function InvoicesListPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Bulk Delete Confirmation Dialog */}
         <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>

@@ -14,12 +14,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Printer, Download, Edit, ArrowLeft } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function InvoiceDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { profile } = useAuth();
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Extract permissions
+  const canEdit = profile?.can_edit_invoices ?? false;
+  const canDelete = profile?.can_delete_invoices ?? false;
 
   useEffect(() => {
     if (id && typeof id === "string") {
@@ -109,14 +115,16 @@ export default function InvoiceDetailPage() {
         <div className="container mx-auto py-4 px-4 print:hidden">
           <BackButton />
           <div className="flex justify-end gap-2 mt-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/invoices/${id}/edit`)}
-              className="gap-2"
-            >
-              <Edit size={16} />
-              Edit Invoice
-            </Button>
+            {canEdit && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/invoices/${id}/edit`)}
+                className="gap-2"
+              >
+                <Edit size={16} />
+                Edit Invoice
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleDownloadPDF}

@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
@@ -43,8 +44,37 @@ type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"]
 
 export default function NewInvoicePage() {
   const router = useRouter();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   
+  // Check permissions - redirect if user cannot create invoices
+  useEffect(() => {
+    if (profile && !profile.can_create_invoices) {
+      console.warn("User does not have permission to create invoices");
+      router.push("/invoices");
+    }
+  }, [profile, router]);
+
+  // If user doesn't have permission, don't render the form
+  if (profile && !profile.can_create_invoices) {
+    return (
+      <ProtectedRoute>
+        <div className="container mx-auto py-8 px-4">
+          <BackButton />
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">غير مصرح</h2>
+            <p className="text-muted-foreground mb-6">
+              ليس لديك صلاحية لإنشاء فواتير جديدة.
+            </p>
+            <Button onClick={() => router.push("/invoices")}>
+              العودة إلى الفواتير
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   // Step 0: Company Selection
   const [companies, setCompanies] = useState<CompanySettings[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<CompanySettings | null>(null);
