@@ -36,6 +36,8 @@ import { Plus, Trash2, Search } from "lucide-react";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
+type Product = Database["public"]["Tables"]["products"]["Row"];
+type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
 
 interface InvoiceItem {
   productId: string;
@@ -258,7 +260,7 @@ export default function NewInvoicePage() {
         created_by: "system", // TODO: Replace with actual user ID when auth is implemented
       };
 
-      const invoiceItems = items.map((item) => ({
+      const invoiceItems: InvoiceItemInsert[] = items.map((item) => ({
         product_id: item.productId,
         product_name_snapshot: item.productName,
         serial_number: item.serialNumber,
