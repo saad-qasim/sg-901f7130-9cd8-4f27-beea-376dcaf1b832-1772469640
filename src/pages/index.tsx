@@ -1,156 +1,172 @@
-
 import React from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   FileText, 
-  Package, 
+  List,
+  Building2,
   Users, 
-  ShoppingBag, 
   Search,
-  Sparkles 
+  BarChart3,
+  Plus
 } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
 
-  const features = [
+  const dashboardCards = [
     {
-      title: "Invoices",
-      description: "Create, view, and manage invoices with automatic calculations",
-      icon: FileText,
+      title: "إنشاء فاتورة جديدة",
+      description: "إنشاء فاتورة جديدة للعملاء مع إضافة المنتجات والأسعار",
+      icon: Plus,
+      href: "/invoices/new",
+      color: "bg-gradient-to-br from-blue-500 to-blue-600"
+    },
+    {
+      title: "قائمة الفواتير",
+      description: "عرض وإدارة جميع الفواتير المسجلة في النظام",
+      icon: List,
       href: "/invoices",
-      color: "text-blue-600 dark:text-blue-400"
+      color: "bg-gradient-to-br from-purple-500 to-purple-600"
     },
     {
-      title: "Brands",
-      description: "Manage product brands with logos and warranty information",
-      icon: Sparkles,
-      href: "/brands",
-      color: "text-purple-600 dark:text-purple-400"
+      title: "إدارة الشركات",
+      description: "إضافة وتعديل بيانات الشركات المصدرة للفواتير",
+      icon: Building2,
+      href: "/admin/companies",
+      color: "bg-gradient-to-br from-green-500 to-green-600"
     },
     {
-      title: "Products",
-      description: "Add and organize products with pricing and specifications",
-      icon: Package,
-      href: "/products",
-      color: "text-green-600 dark:text-green-400"
-    },
-    {
-      title: "Customers",
-      description: "Store customer information and contact details",
+      title: "إدارة الموظفين",
+      description: "إدارة حسابات الموظفين وصلاحيات الوصول",
       icon: Users,
-      href: "/customers",
-      color: "text-orange-600 dark:text-orange-400"
+      href: "/admin/users",
+      color: "bg-gradient-to-br from-orange-500 to-orange-600"
     },
     {
-      title: "Serial Search",
-      description: "Look up warranty and invoice details by device serial number",
+      title: "البحث برقم السيريال",
+      description: "البحث عن معلومات الضمان والفواتير باستخدام رقم الجهاز",
       icon: Search,
       href: "/search-serial",
-      color: "text-pink-600 dark:text-pink-400"
+      color: "bg-gradient-to-br from-pink-500 to-pink-600"
+    },
+    {
+      title: "إحصائيات المبيعات",
+      description: "عرض تقارير وإحصائيات المبيعات والإيرادات",
+      icon: BarChart3,
+      href: "/reports",
+      color: "bg-gradient-to-br from-cyan-500 to-cyan-600"
     }
   ];
 
   return (
     <>
       <Head>
-        <title>Invoice PRO - Invoicing Management System</title>
-        <meta name="description" content="Full-stack invoicing web app for managing brands, products, customers, and invoices" />
+        <title>لوحة التحكم الرئيسية - Invoice PRO</title>
+        <meta name="description" content="نظام إدارة الفواتير والمبيعات" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="container mx-auto px-4 py-12">
-          {/* Header */}
-          <div className="text-center mb-16 space-y-4">
-            <h1 className="text-6xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Invoice PRO
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          {/* Header Section */}
+          <div className="text-center mb-12 space-y-3">
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              لوحة التحكم الرئيسية
             </h1>
-            <p className="text-2xl text-muted-foreground max-w-2xl mx-auto">
-              Complete invoicing solution for your business
+            <p className="text-lg md:text-xl text-muted-foreground">
+              نظام إدارة الفواتير والمبيعات
             </p>
-            <div className="flex gap-4 justify-center pt-4">
-              <Button 
-                size="lg"
-                onClick={() => router.push("/invoices/new")}
-                className="gap-2 text-lg px-8"
-              >
-                <FileText size={20} />
-                Create Invoice
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                onClick={() => router.push("/search-serial")}
-                className="gap-2 text-lg px-8"
-              >
-                <Search size={20} />
-                Search Device
-              </Button>
-            </div>
           </div>
 
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {features.map((feature) => {
-              const Icon = feature.icon;
+          {/* Dashboard Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            {dashboardCards.map((card) => {
+              const Icon = card.icon;
               return (
                 <Card 
-                  key={feature.href}
-                  className="hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/50 group"
-                  onClick={() => router.push(feature.href)}
+                  key={card.href}
+                  className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/30 hover:-translate-y-1 overflow-hidden"
+                  onClick={() => router.push(card.href)}
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`p-3 rounded-lg bg-muted group-hover:scale-110 transition-transform ${feature.color}`}>
-                        <Icon size={28} />
+                  <div className={`h-2 ${card.color.replace('from-', 'bg-').replace('to-', '').split(' ')[0]}`} />
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-xl ${card.color} text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                        <Icon size={28} strokeWidth={2.5} />
                       </div>
-                      <CardTitle className="text-2xl">{feature.title}</CardTitle>
+                      <div className="flex-1 text-right">
+                        <CardTitle className="text-xl md:text-2xl mb-2 font-bold">
+                          {card.title}
+                        </CardTitle>
+                        <CardDescription className="text-sm md:text-base leading-relaxed">
+                          {card.description}
+                        </CardDescription>
+                      </div>
                     </div>
-                    <CardDescription className="text-base">
-                      {feature.description}
-                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full group-hover:bg-primary/10"
-                    >
-                      Open {feature.title}
-                    </Button>
+                    <div className="flex items-center justify-end gap-2 text-primary group-hover:text-primary/80 font-medium">
+                      <span className="text-sm">انتقال</span>
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        className="transform rotate-180 group-hover:-translate-x-1 transition-transform"
+                      >
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                      </svg>
+                    </div>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
 
-          {/* Quick Stats or Additional Info */}
-          <div className="mt-16 text-center">
-            <Card className="max-w-3xl mx-auto bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-2">
+          {/* Quick Access Section */}
+          <div className="mt-16 max-w-5xl mx-auto">
+            <Card className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-pink-950/20 border-2 border-primary/20">
               <CardHeader>
-                <CardTitle className="text-3xl">Features Overview</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl text-center">الوصول السريع</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                  <div>
-                    <div className="text-4xl font-bold text-blue-600 dark:text-blue-400">∞</div>
-                    <div className="text-sm text-muted-foreground mt-2">Unlimited Invoices</div>
-                  </div>
-                  <div>
-                    <div className="text-4xl font-bold text-purple-600 dark:text-purple-400">2</div>
-                    <div className="text-sm text-muted-foreground mt-2">Currency Support</div>
-                  </div>
-                  <div>
-                    <div className="text-4xl font-bold text-green-600 dark:text-green-400">✓</div>
-                    <div className="text-sm text-muted-foreground mt-2">Warranty Tracking</div>
-                  </div>
-                  <div>
-                    <div className="text-4xl font-bold text-pink-600 dark:text-pink-400">⚡</div>
-                    <div className="text-sm text-muted-foreground mt-2">Fast Search</div>
-                  </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                  <button
+                    onClick={() => router.push("/brands")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">🏷️</div>
+                    <div className="text-sm font-medium text-center">العلامات التجارية</div>
+                  </button>
+                  <button
+                    onClick={() => router.push("/products")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">📦</div>
+                    <div className="text-sm font-medium text-center">المنتجات</div>
+                  </button>
+                  <button
+                    onClick={() => router.push("/customers")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">👥</div>
+                    <div className="text-sm font-medium text-center">العملاء</div>
+                  </button>
+                  <button
+                    onClick={() => router.push("/invoices/new")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">✨</div>
+                    <div className="text-sm font-medium text-center">فاتورة جديدة</div>
+                  </button>
                 </div>
               </CardContent>
             </Card>
