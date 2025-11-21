@@ -5,7 +5,7 @@ import { customerService } from "@/services/customerService";
 import { brandService } from "@/services/brandService";
 import { productService, ProductWithBrand } from "@/services/productService";
 import { companyService, CompanySettings } from "@/services/companyService";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
-type InvoiceItemInsert =
-  Database["public"]["Tables"]["invoice_items"]["Insert"];
+type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
 
 // This component contains the form and its logic
 const NewInvoiceForm = () => {
@@ -90,7 +89,7 @@ const NewInvoiceForm = () => {
           customerService.getAllCustomers(),
           brandService.getAllBrands(),
           productService.getAllProducts(),
-          invoiceService.getNextInvoiceNumber(),
+          invoiceService.generateInvoiceNumber(),
           companyService.getCompanySettings(),
         ]);
         setCustomers(customersData);
@@ -108,7 +107,7 @@ const NewInvoiceForm = () => {
 
   useEffect(() => {
     const newTotal = invoiceItems.reduce(
-      (acc, item) => acc + (item.quantity || 0) * (item.price || 0),
+      (acc, item) => acc + (item.quantity || 0) * (item.unit_price || 0),
       0
     );
     setTotal(newTotal);
@@ -121,7 +120,9 @@ const NewInvoiceForm = () => {
   };
 
   const handleAddProduct = (product: ProductWithBrand) => {
-    const existingItem = invoiceItems.find((item) => item.product_id === product.id);
+    const existingItem = invoiceItems.find(
+      (item) => item.product_id === product.id
+    );
     if (existingItem) {
       alert("This product is already in the invoice.");
       return;
@@ -129,10 +130,13 @@ const NewInvoiceForm = () => {
 
     const newItem: InvoiceItemInsert = {
       product_id: product.id,
-      description: product.description,
-      serial_number: product.serial_number,
+      product_name_snapshot: product.description,
+      serial_number: product.serial,
       quantity: 1,
-      price: currency === "USD" ? product.price_usd || 0 : product.price_iqd || 0,
+      unit_price:
+        currency === "USD" ? product.price_usd || 0 : product.price_iqd || 0,
+      total:
+        currency === "USD" ? product.price_usd || 0 : product.price_iqd || 0,
     };
     setInvoiceItems([...invoiceItems, newItem]);
     setShowProductSearchDialog(false);
@@ -141,18 +145,20 @@ const NewInvoiceForm = () => {
 
   const handleItemChange = (
     index: number,
-    field: keyof InvoiceItemInsert,
+    field: "quantity" | "unit_price",
     value: string | number
   ) => {
     const updatedItems = [...invoiceItems];
     const item = updatedItems[index];
 
-    if (field === "quantity" || field === "price") {
-      (item[field] as number) = Number(value);
-    } else {
-      (item[field] as string) = String(value);
+    const numericValue = Number(value);
+    if (field === "quantity") {
+      item.quantity = numericValue;
+    } else if (field === "unit_price") {
+      item.unit_price = numericValue;
     }
 
+    item.total = (item.quantity || 0) * (item.unit_price || 0);
     setInvoiceItems(updatedItems);
   };
 
@@ -199,12 +205,17 @@ const NewInvoiceForm = () => {
         notes,
       };
 
-      const createdInvoice = await invoiceService.createInvoice(
+      const finalInvoiceItems = invoiceItems.map(item => ({
+        ...item,
+        total: (item.quantity || 1) * (item.unit_price || 0)
+      }))
+
+      await invoiceService.addInvoice(
         invoiceData,
-        invoiceItems
+        finalInvoiceItems
       );
 
-      router.push(`/invoices/${createdInvoice.id}`);
+      router.push(`/invoices`);
     } catch (error) {
       console.error("Error creating invoice:", error);
       alert("Failed to create invoice");
@@ -223,7 +234,7 @@ const NewInvoiceForm = () => {
     const results = products.filter(
       (p) =>
         p.description?.toLowerCase().includes(lowercasedTerm) ||
-        p.serial_number?.toLowerCase().includes(lowercasedTerm)
+        p.serial?.toLowerCase().includes(lowercasedTerm)
     );
     setFilteredProducts(results);
   };
@@ -342,7 +353,7 @@ const NewInvoiceForm = () => {
                       invoiceItems.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">
-                            {item.description}
+                            {item.product_name_snapshot}
                           </TableCell>
                           <TableCell>{item.serial_number}</TableCell>
                           <TableCell>
@@ -363,11 +374,11 @@ const NewInvoiceForm = () => {
                           <TableCell>
                             <Input
                               type="number"
-                              value={item.price || ""}
+                              value={item.unit_price || ""}
                               onChange={(e) =>
                                 handleItemChange(
                                   index,
-                                  "price",
+                                  "unit_price",
                                   e.target.value
                                 )
                               }
@@ -377,7 +388,7 @@ const NewInvoiceForm = () => {
                           </TableCell>
                           <TableCell>
                             {formatCurrencyDisplay(
-                              (item.quantity || 0) * (item.price || 0)
+                              (item.quantity || 0) * (item.unit_price || 0)
                             )}
                           </TableCell>
                           <TableCell>
@@ -558,7 +569,7 @@ const NewInvoiceForm = () => {
                       <TableCell>
                         <div className="font-medium">{p.description}</div>
                         <div className="text-sm text-muted-foreground">
-                          {p.serial_number}
+                          {p.serial}
                         </div>
                       </TableCell>
                       <TableCell>{p.price_iqd?.toLocaleString()}</TableCell>
