@@ -150,6 +150,7 @@ export type Database = {
           id: string
           invoice_date: string
           invoice_number: string
+          invoice_title: string | null
           notes: string | null
           shipping_cost: number | null
           subtotal: number | null
@@ -169,6 +170,7 @@ export type Database = {
           id?: string
           invoice_date: string
           invoice_number: string
+          invoice_title?: string | null
           notes?: string | null
           shipping_cost?: number | null
           subtotal?: number | null
@@ -188,6 +190,7 @@ export type Database = {
           id?: string
           invoice_date?: string
           invoice_number?: string
+          invoice_title?: string | null
           notes?: string | null
           shipping_cost?: number | null
           subtotal?: number | null
