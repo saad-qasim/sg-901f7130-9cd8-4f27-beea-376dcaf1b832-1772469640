@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 

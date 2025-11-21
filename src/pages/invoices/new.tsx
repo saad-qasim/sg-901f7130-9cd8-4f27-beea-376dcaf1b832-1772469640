@@ -128,15 +128,15 @@ const NewInvoiceForm = () => {
       return;
     }
 
+    const price = currency === "USD" ? product.unit_price_usd || 0 : product.unit_price_iqd || 0;
+
     const newItem: InvoiceItemInsert = {
       product_id: product.id,
-      product_name_snapshot: product.description,
-      serial_number: product.serial,
+      product_name_snapshot: product.description || product.name,
+      serial_number: product.model_number,
       quantity: 1,
-      unit_price:
-        currency === "USD" ? product.price_usd || 0 : product.price_iqd || 0,
-      total:
-        currency === "USD" ? product.price_usd || 0 : product.price_iqd || 0,
+      unit_price: price,
+      total: price,
     };
     setInvoiceItems([...invoiceItems, newItem]);
     setShowProductSearchDialog(false);
@@ -198,7 +198,7 @@ const NewInvoiceForm = () => {
       const invoiceData = {
         customer_id: selectedCustomerId,
         brand_id: selectedBrandId,
-        invoice_number: parseInt(invoiceNumber, 10),
+        invoice_number: invoiceNumber,
         invoice_date: invoiceDate,
         total,
         currency,
@@ -234,7 +234,8 @@ const NewInvoiceForm = () => {
     const results = products.filter(
       (p) =>
         p.description?.toLowerCase().includes(lowercasedTerm) ||
-        p.serial?.toLowerCase().includes(lowercasedTerm)
+        p.model_number?.toLowerCase().includes(lowercasedTerm) ||
+        p.name.toLowerCase().includes(lowercasedTerm)
     );
     setFilteredProducts(results);
   };
@@ -547,7 +548,7 @@ const NewInvoiceForm = () => {
                 size={18}
               />
               <Input
-                placeholder="ابحث بالوصف أو الرقم التسلسلي..."
+                placeholder="ابحث بالاسم، الوصف، أو الرقم التسلسلي..."
                 value={productSearchTerm}
                 onChange={(e) => filterProducts(e.target.value)}
                 className="pl-10"
@@ -567,13 +568,13 @@ const NewInvoiceForm = () => {
                   {filteredProducts.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>
-                        <div className="font-medium">{p.description}</div>
+                        <div className="font-medium">{p.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {p.serial}
+                          {p.model_number} - {p.description}
                         </div>
                       </TableCell>
-                      <TableCell>{p.price_iqd?.toLocaleString()}</TableCell>
-                      <TableCell>${p.price_usd?.toFixed(2)}</TableCell>
+                      <TableCell>{p.unit_price_iqd?.toLocaleString()}</TableCell>
+                      <TableCell>${p.unit_price_usd?.toFixed(2)}</TableCell>
                       <TableCell>
                         <Button
                           size="sm"

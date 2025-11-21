@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { Database } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
 
 type InvoiceRow = Database["public"]["Tables"]["invoices"]["Row"];
 type InvoiceItemRow = Database["public"]["Tables"]["invoice_items"]["Row"];
@@ -74,14 +74,14 @@ export const invoiceService = {
     return data;
   },
 
-  async createInvoiceWithItems(data: {
-    invoice: InvoiceInsertType;
-    items: Omit<InvoiceItemInsertType, "invoice_id">[];
-  }): Promise<InvoiceRow> {
+  async addInvoice(
+    invoiceData: InvoiceInsertType,
+    itemsData: InvoiceItemInsertType[]
+  ): Promise<InvoiceRow> {
     // 1. Create the invoice
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
-      .insert(data.invoice)
+      .insert(invoiceData)
       .select()
       .single();
 
@@ -89,7 +89,7 @@ export const invoiceService = {
     if (!invoice) throw new Error("Failed to create invoice record.");
 
     // 2. Add invoice_id to each item and insert them
-    const itemsWithInvoiceId = data.items.map((item) => ({
+    const itemsWithInvoiceId = itemsData.map((item) => ({
       ...item,
       invoice_id: invoice.id,
     }));
