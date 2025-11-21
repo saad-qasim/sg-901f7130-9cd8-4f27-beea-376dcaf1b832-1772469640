@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,7 +90,7 @@ export default function SetupAdminPage() {
                   <AlertDescription>
                     <strong>تم إنشاء المستخدم بنجاح! 🎉</strong>
                     <br />
-                    يمكنك الآن <a href="/login" className="underline font-semibold">تسجيل الدخول</a> باستخدام البريد الإلكتروني وكلمة المرور.
+                    يمكنك الآن <Link href="/login" className="underline font-semibold">تسجيل الدخول</Link> باستخدام البريد الإلكتروني وكلمة المرور.
                   </AlertDescription>
                 </Alert>
               )}
