@@ -61,7 +61,7 @@ export default function NewInvoicePage() {
 
   // Step 3: Invoice Items
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
-  const [items, setItems] = useState<InvoiceItemInsert[]>([]);
+  const [items, setItems] = useState<Omit<InvoiceItemInsert, "invoice_id">[]>([]);
   const [currency, setCurrency] = useState<"IQD" | "USD">("IQD");
   
   // Invoice Details
@@ -153,7 +153,7 @@ export default function NewInvoicePage() {
     ]);
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItemInsert, value: any) => {
+  const updateItem = (index: number, field: keyof Omit<InvoiceItemInsert, "invoice_id">, value: any) => {
     const updatedItems = [...items];
     const currentItem = { ...updatedItems[index] };
     
@@ -163,7 +163,7 @@ export default function NewInvoicePage() {
         currentItem.product_id = value;
         currentItem.product_name_snapshot = product.name;
         currentItem.unit_price =
-          currency === "IQD" ? product.unit_price_iqd : product.unit_price_usd;
+          currency === "IQD" ? product.unit_price_iqd ?? 0 : product.unit_price_usd ?? 0;
         
         // Update warranty text if product has specific warranty
         if (product.warranty_text) {
@@ -428,8 +428,8 @@ export default function NewInvoicePage() {
                         if (product) {
                           const newPrice =
                             value === "IQD"
-                              ? product.unit_price_iqd
-                              : product.unit_price_usd;
+                              ? product.unit_price_iqd ?? 0
+                              : product.unit_price_usd ?? 0;
                           return {
                             ...item,
                             unit_price: newPrice,

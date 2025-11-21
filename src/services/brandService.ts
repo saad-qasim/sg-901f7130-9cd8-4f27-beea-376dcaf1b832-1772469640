@@ -1,23 +1,18 @@
-
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
-type Brand = Database["public"]["Tables"]["brands"]["Row"];
-type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
-type BrandUpdate = Database["public"]["Tables"]["brands"]["Update"];
-
 export const brandService = {
-  async getAllBrands() {
+  async getAllBrands(): Promise<Database["public"]["Tables"]["brands"]["Row"][]> {
     const { data, error } = await supabase
       .from("brands")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data as Brand[];
+    return data;
   },
 
-  async getBrandById(id: string) {
+  async getBrandById(id: string): Promise<Database["public"]["Tables"]["brands"]["Row"]> {
     const { data, error } = await supabase
       .from("brands")
       .select("*")
@@ -25,10 +20,10 @@ export const brandService = {
       .single();
 
     if (error) throw error;
-    return data as Brand;
+    return data;
   },
 
-  async createBrand(brand: BrandInsert) {
+  async createBrand(brand: Database["public"]["Tables"]["brands"]["Insert"]): Promise<Database["public"]["Tables"]["brands"]["Row"]> {
     const { data, error } = await supabase
       .from("brands")
       .insert([brand])
@@ -36,10 +31,10 @@ export const brandService = {
       .single();
 
     if (error) throw error;
-    return data as Brand;
+    return data;
   },
 
-  async updateBrand(id: string, updates: BrandUpdate) {
+  async updateBrand(id: string, updates: Database["public"]["Tables"]["brands"]["Update"]): Promise<Database["public"]["Tables"]["brands"]["Row"]> {
     const { data, error } = await supabase
       .from("brands")
       .update(updates)
@@ -48,10 +43,10 @@ export const brandService = {
       .single();
 
     if (error) throw error;
-    return data as Brand;
+    return data;
   },
 
-  async deleteBrand(id: string) {
+  async deleteBrand(id: string): Promise<boolean> {
     const { error } = await supabase
       .from("brands")
       .delete()

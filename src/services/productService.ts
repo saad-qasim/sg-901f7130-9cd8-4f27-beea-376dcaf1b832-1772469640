@@ -1,19 +1,14 @@
-
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
-type Product = Database["public"]["Tables"]["products"]["Row"];
-type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
-type ProductUpdate = Database["public"]["Tables"]["products"]["Update"];
-
-export interface ProductWithBrand extends Product {
+export interface ProductWithBrand extends Database["public"]["Tables"]["products"]["Row"] {
   brands: {
     name: string;
   };
 }
 
 export const productService = {
-  async getAllProducts() {
+  async getAllProducts(): Promise<ProductWithBrand[]> {
     const { data, error } = await supabase
       .from("products")
       .select(`
@@ -25,10 +20,10 @@ export const productService = {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data as ProductWithBrand[];
+    return data;
   },
 
-  async getProductsByBrand(brandId: string) {
+  async getProductsByBrand(brandId: string): Promise<ProductWithBrand[]> {
     const { data, error } = await supabase
       .from("products")
       .select(`
@@ -41,10 +36,10 @@ export const productService = {
       .order("name", { ascending: true });
 
     if (error) throw error;
-    return data as ProductWithBrand[];
+    return data;
   },
 
-  async getProductById(id: string) {
+  async getProductById(id: string): Promise<Database["public"]["Tables"]["products"]["Row"]> {
     const { data, error } = await supabase
       .from("products")
       .select("*")
@@ -52,10 +47,10 @@ export const productService = {
       .single();
 
     if (error) throw error;
-    return data as Product;
+    return data;
   },
 
-  async createProduct(product: ProductInsert) {
+  async createProduct(product: Database["public"]["Tables"]["products"]["Insert"]): Promise<Database["public"]["Tables"]["products"]["Row"]> {
     const { data, error } = await supabase
       .from("products")
       .insert([product])
@@ -63,10 +58,10 @@ export const productService = {
       .single();
 
     if (error) throw error;
-    return data as Product;
+    return data;
   },
 
-  async updateProduct(id: string, updates: ProductUpdate) {
+  async updateProduct(id: string, updates: Database["public"]["Tables"]["products"]["Update"]): Promise<Database["public"]["Tables"]["products"]["Row"]> {
     const { data, error } = await supabase
       .from("products")
       .update(updates)
@@ -75,15 +70,11 @@ export const productService = {
       .single();
 
     if (error) throw error;
-    return data as Product;
+    return data;
   },
 
-  async deleteProduct(id: string) {
-    const { error } = await supabase
-      .from("products")
-      .delete()
-      .eq("id", id);
-
+  async deleteProduct(id: string): Promise<boolean> {
+    const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) throw error;
     return true;
   }
