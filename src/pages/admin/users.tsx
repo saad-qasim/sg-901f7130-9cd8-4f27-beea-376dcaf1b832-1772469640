@@ -101,12 +101,12 @@ export default function AdminUsersPage() {
       name: user.name || "",
       phone: user.phone || "",
       role: user.role || "viewer",
-      can_create_invoices: user.can_create_invoices || false,
-      can_delete_invoices: user.can_delete_invoices || false,
-      can_edit_invoices: user.can_edit_invoices || false,
-      can_add_brand: user.can_add_brand || false,
-      can_add_product: user.can_add_product || false,
-      can_view_stats: user.can_view_stats || false,
+      can_create_invoices: user.can_create_invoices ?? false,
+      can_delete_invoices: user.can_delete_invoices ?? false,
+      can_edit_invoices: user.can_edit_invoices ?? false,
+      can_add_brand: user.can_add_brand ?? false,
+      can_add_product: user.can_add_product ?? false,
+      can_view_stats: user.can_view_stats ?? false,
     });
     setShowEditDialog(true);
     setSuccessMessage("");

@@ -7,6 +7,12 @@ type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export interface ProfileWithEmail extends ProfileRow {
   email: string | null;
+  can_create_invoices: boolean | null;
+  can_delete_invoices: boolean | null;
+  can_edit_invoices: boolean | null;
+  can_add_brand: boolean | null;
+  can_add_product: boolean | null;
+  can_view_stats: boolean | null;
 }
 
 export interface CreateUserData {
@@ -32,27 +38,24 @@ export const userService = {
     if (profilesError) throw profilesError;
     if (!profiles || profiles.length === 0) return [];
 
-    const userIds = profiles.map((p) => p.id);
-
     const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
       page: 1,
-      perPage: 1000, // Adjust as needed
+      perPage: 1000,
     });
 
     if (usersError) {
       console.error("Error fetching auth users:", usersError);
-      // Return profiles without emails as a fallback
       return profiles.map(profile => ({
         ...profile,
         email: null,
       }));
     }
     
-    const emailMap = new Map(users.users.map(u => [u.id, u.email]));
+    const emailMap = new Map<string, string | undefined>(users.users.map(u => [u.id, u.email]));
 
     const profilesWithEmails: ProfileWithEmail[] = profiles.map(profile => ({
       ...profile,
-      email: emailMap.get(profile.id) || null,
+      email: emailMap.get(profile.id) ?? null,
     }));
     
     return profilesWithEmails;
