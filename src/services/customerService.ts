@@ -1,10 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
 
-type CustomerRow = Database["public"]["Tables"]["customers"]["Row"];
+export type Customer = Database["public"]["Tables"]["customers"]["Row"];
 
 export const customerService = {
-  async getAllCustomers(): Promise<CustomerRow[]> {
+  async getAllCustomers(): Promise<Customer[]> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -14,7 +14,7 @@ export const customerService = {
     return data;
   },
 
-  async searchCustomers(query: string): Promise<CustomerRow[]> {
+  async searchCustomers(query: string): Promise<Customer[]> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -25,7 +25,7 @@ export const customerService = {
     return data;
   },
 
-  async getCustomerById(id: string): Promise<CustomerRow> {
+  async getCustomerById(id: string): Promise<Customer> {
     const { data, error } = await supabase
       .from("customers")
       .select("*")
@@ -36,7 +36,7 @@ export const customerService = {
     return data;
   },
 
-  async createCustomer(customer: Database["public"]["Tables"]["customers"]["Insert"]): Promise<CustomerRow> {
+  async createCustomer(customer: Database["public"]["Tables"]["customers"]["Insert"]): Promise<Customer> {
     const { data, error } = await supabase
       .from("customers")
       .insert([customer])
@@ -47,7 +47,7 @@ export const customerService = {
     return data;
   },
 
-  async updateCustomer(id: string, updates: Database["public"]["Tables"]["customers"]["Update"]): Promise<CustomerRow> {
+  async updateCustomer(id: string, updates: Database["public"]["Tables"]["customers"]["Update"]): Promise<Customer> {
     const { data, error } = await supabase
       .from("customers")
       .update(updates)

@@ -7,6 +7,7 @@ type InvoiceInsertType = Database["public"]["Tables"]["invoices"]["Insert"];
 type InvoiceItemInsertType = Database["public"]["Tables"]["invoice_items"]["Insert"];
 
 export type InvoiceWithRelations = InvoiceRow & {
+  invoice_title: string | null;
   customers: {
     name: string;
     phone: string | null;

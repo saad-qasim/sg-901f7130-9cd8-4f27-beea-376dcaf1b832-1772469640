@@ -1,10 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
 
-type BrandRow = Database["public"]["Tables"]["brands"]["Row"];
+export type Brand = Database["public"]["Tables"]["brands"]["Row"];
 
 export const brandService = {
-  async getAllBrands(): Promise<Database["public"]["Tables"]["brands"]["Row"][]> {
+  async getAllBrands(): Promise<Brand[]> {
     const { data, error } = await supabase
       .from("brands")
       .select("*")

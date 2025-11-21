@@ -164,7 +164,7 @@ export default function EditInvoicePage() {
     }
 
     try {
-      const newCustomer = await customerService.addCustomer({
+      const newCustomer = await customerService.createCustomer({
         name: newCustomerName,
         phone: newCustomerPhone || null,
         address: newCustomerAddress || null,
