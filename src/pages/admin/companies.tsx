@@ -30,6 +30,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 type CompanySettings = Database["public"]["Tables"]["company_settings"]["Row"];
 
@@ -136,148 +137,150 @@ export default function AdminCompaniesPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <BackButton />
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Company Profiles</h1>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus size={16} className="mr-2" />
-          إضافة شركة جديدة
-        </Button>
-      </div>
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <BackButton />
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Company Profiles</h1>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus size={16} className="mr-2" />
+            إضافة شركة جديدة
+          </Button>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Companies</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-center py-8 text-muted-foreground">Loading...</p>
-          ) : companies.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">
-              No companies found. Click "إضافة شركة جديدة" to add one.
-            </p>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Default Currency</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {companies.map((company) => (
-                    <TableRow key={company.id}>
-                      <TableCell className="font-medium">
-                        {company.company_name}
-                      </TableCell>
-                      <TableCell>{company.default_currency}</TableCell>
-                      <TableCell>{formatDate(company.created_at)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleOpenDialog(company)}
-                          >
-                            <Edit size={16} />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleDelete(company.id)}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      </TableCell>
+        <Card>
+          <CardHeader>
+            <CardTitle>All Companies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-center py-8 text-muted-foreground">Loading...</p>
+            ) : companies.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">
+                No companies found. Click "إضافة شركة جديدة" to add one.
+              </p>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company Name</TableHead>
+                      <TableHead>Default Currency</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead className="w-[100px]">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {companies.map((company) => (
+                      <TableRow key={company.id}>
+                        <TableCell className="font-medium">
+                          {company.company_name}
+                        </TableCell>
+                        <TableCell>{company.default_currency}</TableCell>
+                        <TableCell>{formatDate(company.created_at)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleOpenDialog(company)}
+                            >
+                              <Edit size={16} />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDelete(company.id)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Add/Edit Company Dialog */}
-      <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCompany ? "Edit Company" : "Add New Company"}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Label htmlFor="company-name">Company Name *</Label>
-              <Input
-                id="company-name"
-                value={formData.company_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, company_name: e.target.value })
-                }
-                placeholder="Enter company name"
-                required
-              />
-            </div>
+        {/* Add/Edit Company Dialog */}
+        <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingCompany ? "Edit Company" : "Add New Company"}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Label htmlFor="company-name">Company Name *</Label>
+                <Input
+                  id="company-name"
+                  value={formData.company_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, company_name: e.target.value })
+                  }
+                  placeholder="Enter company name"
+                  required
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="company-info">
-                Company Information
-                <span className="text-sm text-muted-foreground ml-2">
-                  (Used as invoice header)
-                </span>
-              </Label>
-              <Textarea
-                id="company-info"
-                value={formData.company_info_text}
-                onChange={(e) =>
-                  setFormData({ ...formData, company_info_text: e.target.value })
-                }
-                rows={6}
-                placeholder="معلومات الشركة - الاسم، العنوان، رقم الهاتف، البريد الإلكتروني..."
-                className="text-right"
-                dir="rtl"
-              />
-            </div>
+              <div>
+                <Label htmlFor="company-info">
+                  Company Information
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (Used as invoice header)
+                  </span>
+                </Label>
+                <Textarea
+                  id="company-info"
+                  value={formData.company_info_text}
+                  onChange={(e) =>
+                    setFormData({ ...formData, company_info_text: e.target.value })
+                  }
+                  rows={6}
+                  placeholder="معلومات الشركة - الاسم، العنوان، رقم الهاتف، البريد الإلكتروني..."
+                  className="text-right"
+                  dir="rtl"
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="default-currency">Default Currency</Label>
-              <Select
-                value={formData.default_currency}
-                onValueChange={(value: "IQD" | "USD") =>
-                  setFormData({ ...formData, default_currency: value })
-                }
-              >
-                <SelectTrigger id="default-currency">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IQD">Iraqi Dinar (IQD)</SelectItem>
-                  <SelectItem value="USD">US Dollar (USD)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div>
+                <Label htmlFor="default-currency">Default Currency</Label>
+                <Select
+                  value={formData.default_currency}
+                  onValueChange={(value: "IQD" | "USD") =>
+                    setFormData({ ...formData, default_currency: value })
+                  }
+                >
+                  <SelectTrigger id="default-currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IQD">Iraqi Dinar (IQD)</SelectItem>
+                    <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseDialog}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">
-                {editingCompany ? "Update Company" : "Create Company"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseDialog}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingCompany ? "Update Company" : "Create Company"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </ProtectedRoute>
   );
 }

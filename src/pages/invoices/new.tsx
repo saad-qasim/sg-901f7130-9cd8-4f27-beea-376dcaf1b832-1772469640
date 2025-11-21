@@ -34,6 +34,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
@@ -294,491 +295,493 @@ export default function NewInvoicePage() {
   );
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <BackButton />
-      <h1 className="text-4xl font-bold mb-8">Create New Invoice</h1>
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <BackButton />
+        <h1 className="text-4xl font-bold mb-8">Create New Invoice</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Step 0: Company Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>1. Select Company (اختيار الشركة المصدّرة)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="company">Issuing Company *</Label>
-              <Select
-                value={selectedCompany?.id || ""}
-                onValueChange={handleCompanyChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a company" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {companies.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No companies found. Please add a company in the admin panel first.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Company Information - Only shown when company is selected */}
-        {selectedCompany && (
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Step 0: Company Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Company Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div>
-                <Label htmlFor="company-info">Company Information (can be edited per invoice)</Label>
-                <Textarea
-                  id="company-info"
-                  value={companyInfo}
-                  onChange={(e) => setCompanyInfo(e.target.value)}
-                  rows={3}
-                  placeholder="Company name, address, contact info..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 1: Customer Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>2. Select Customer</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="customer-search">Search Customer</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input
-                    id="customer-search"
-                    placeholder="Search by name or phone..."
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="pt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCustomerDialog(true)}
-                >
-                  <Plus size={16} className="mr-2" />
-                  New Customer
-                </Button>
-              </div>
-            </div>
-
-            {selectedCustomer ? (
-              <div className="p-4 border rounded-lg bg-muted/50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-semibold text-lg">{selectedCustomer.name}</p>
-                    {selectedCustomer.phone && (
-                      <p className="text-sm text-muted-foreground">
-                        Phone: {selectedCustomer.phone}
-                      </p>
-                    )}
-                    {selectedCustomer.email && (
-                      <p className="text-sm text-muted-foreground">
-                        Email: {selectedCustomer.email}
-                      </p>
-                    )}
-                    {selectedCustomer.address && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {selectedCustomer.address}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedCustomer(null)}
-                  >
-                    Change
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="border rounded-lg max-h-48 overflow-y-auto">
-                {filteredCustomers.length === 0 ? (
-                  <p className="text-center py-4 text-muted-foreground">
-                    No customers found
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {filteredCustomers.map((customer) => (
-                      <button
-                        key={customer.id}
-                        type="button"
-                        onClick={() => setSelectedCustomer(customer)}
-                        className="w-full text-left p-3 hover:bg-muted/50 transition-colors"
-                      >
-                        <p className="font-medium">{customer.name}</p>
-                        {customer.phone && (
-                          <p className="text-sm text-muted-foreground">
-                            {customer.phone}
-                          </p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Step 2: Brand Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>3. Select Brand</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="brand">Brand *</Label>
-              <Select
-                value={selectedBrand?.id || ""}
-                onValueChange={(value) => {
-                  const brand = brands.find((b) => b.id === value);
-                  setSelectedBrand(brand || null);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a brand" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedBrand && selectedBrand.logo_url && (
-              <div className="flex justify-center p-4 border rounded-lg bg-muted/50">
-                <img
-                  src={selectedBrand.logo_url}
-                  alt={selectedBrand.name}
-                  className="max-h-24 object-contain"
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Step 3: Invoice Items */}
-        {selectedBrand && (
-          <Card>
-            <CardHeader>
-              <CardTitle>4. Add Invoice Items</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select
-                    value={currency}
-                    onValueChange={(value: "IQD" | "USD") => {
-                      setCurrency(value);
-                      // Update all item prices when currency changes
-                      const updatedItems = items.map((item) => {
-                        const product = products.find((p) => p.id === item.product_id);
-                        if (product) {
-                          const newPrice =
-                            value === "IQD"
-                              ? product.unit_price_iqd ?? 0
-                              : product.unit_price_usd ?? 0;
-                          return {
-                            ...item,
-                            unit_price: newPrice,
-                            total: (item.quantity || 1) * newPrice,
-                          };
-                        }
-                        return item;
-                      });
-                      setItems(updatedItems);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IQD">Iraqi Dinar (IQD)</SelectItem>
-                      <SelectItem value="USD">US Dollar (USD)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="invoice-date">Invoice Date</Label>
-                  <Input
-                    id="invoice-date"
-                    type="date"
-                    value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[250px]">Product</TableHead>
-                      <TableHead>Serial Number</TableHead>
-                      <TableHead className="w-[100px]">Quantity</TableHead>
-                      <TableHead className="w-[120px]">Unit Price</TableHead>
-                      <TableHead className="w-[120px]">Total</TableHead>
-                      <TableHead className="w-[60px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Select
-                            value={item.product_id || ""}
-                            onValueChange={(value) =>
-                              updateItem(index, "product_id", value)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select product" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={item.serial_number || ""}
-                            onChange={(e) =>
-                              updateItem(index, "serial_number", e.target.value)
-                            }
-                            placeholder="Serial #"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity || 1}
-                            onChange={(e) =>
-                              updateItem(index, "quantity", parseInt(e.target.value) || 1)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={item.unit_price || 0}
-                            onChange={(e) =>
-                              updateItem(
-                                index,
-                                "unit_price",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          {currency === "USD"
-                            ? `$${(item.total || 0).toFixed(2)}`
-                            : `${(item.total || 0).toLocaleString()} IQD`}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => removeItem(index)}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <Button type="button" variant="outline" onClick={addItem}>
-                <Plus size={16} className="mr-2" />
-                Add Item
-              </Button>
-
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex justify-between text-lg">
-                  <span>Subtotal:</span>
-                  <span className="font-semibold">
-                    {currency === "USD"
-                      ? `$${calculateSubtotal().toFixed(2)}`
-                      : `${calculateSubtotal().toLocaleString()} IQD`}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="shipping">Shipping Cost:</Label>
-                  <Input
-                    id="shipping"
-                    type="number"
-                    step="0.01"
-                    value={shippingCost}
-                    onChange={(e) =>
-                      setShippingCost(parseFloat(e.target.value) || 0)
-                    }
-                    className="w-32 text-right"
-                  />
-                </div>
-                <div className="flex justify-between text-xl font-bold border-t pt-3">
-                  <span>Total:</span>
-                  <span>
-                    {currency === "USD"
-                      ? `$${calculateTotal().toFixed(2)}`
-                      : `${calculateTotal().toLocaleString()} IQD`}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Additional Details */}
-        {selectedBrand && items.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>5. Additional Details</CardTitle>
+              <CardTitle>1. Select Company (اختيار الشركة المصدّرة)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="warranty">Warranty Terms</Label>
-                <Textarea
-                  id="warranty"
-                  value={warrantyText}
-                  onChange={(e) => setWarrantyText(e.target.value)}
-                  rows={4}
-                  placeholder="Warranty terms and conditions..."
+                <Label htmlFor="company">Issuing Company *</Label>
+                <Select
+                  value={selectedCompany?.id || ""}
+                  onValueChange={handleCompanyChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {companies.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No companies found. Please add a company in the admin panel first.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Company Information - Only shown when company is selected */}
+          {selectedCompany && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Company Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <Label htmlFor="company-info">Company Information (can be edited per invoice)</Label>
+                  <Textarea
+                    id="company-info"
+                    value={companyInfo}
+                    onChange={(e) => setCompanyInfo(e.target.value)}
+                    rows={3}
+                    placeholder="Company name, address, contact info..."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 1: Customer Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>2. Select Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="customer-search">Search Customer</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <Input
+                      id="customer-search"
+                      placeholder="Search by name or phone..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCustomerDialog(true)}
+                  >
+                    <Plus size={16} className="mr-2" />
+                    New Customer
+                  </Button>
+                </div>
+              </div>
+
+              {selectedCustomer ? (
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-lg">{selectedCustomer.name}</p>
+                      {selectedCustomer.phone && (
+                        <p className="text-sm text-muted-foreground">
+                          Phone: {selectedCustomer.phone}
+                        </p>
+                      )}
+                      {selectedCustomer.email && (
+                        <p className="text-sm text-muted-foreground">
+                          Email: {selectedCustomer.email}
+                        </p>
+                      )}
+                      {selectedCustomer.address && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {selectedCustomer.address}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedCustomer(null)}
+                    >
+                      Change
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="border rounded-lg max-h-48 overflow-y-auto">
+                  {filteredCustomers.length === 0 ? (
+                    <p className="text-center py-4 text-muted-foreground">
+                      No customers found
+                    </p>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredCustomers.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => setSelectedCustomer(customer)}
+                          className="w-full text-left p-3 hover:bg-muted/50 transition-colors"
+                        >
+                          <p className="font-medium">{customer.name}</p>
+                          {customer.phone && (
+                            <p className="text-sm text-muted-foreground">
+                              {customer.phone}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Step 2: Brand Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>3. Select Brand</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="brand">Brand *</Label>
+                <Select
+                  value={selectedBrand?.id || ""}
+                  onValueChange={(value) => {
+                    const brand = brands.find((b) => b.id === value);
+                    setSelectedBrand(brand || null);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedBrand && selectedBrand.logo_url && (
+                <div className="flex justify-center p-4 border rounded-lg bg-muted/50">
+                  <img
+                    src={selectedBrand.logo_url}
+                    alt={selectedBrand.name}
+                    className="max-h-24 object-contain"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Step 3: Invoice Items */}
+          {selectedBrand && (
+            <Card>
+              <CardHeader>
+                <CardTitle>4. Add Invoice Items</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="currency">Currency</Label>
+                    <Select
+                      value={currency}
+                      onValueChange={(value: "IQD" | "USD") => {
+                        setCurrency(value);
+                        // Update all item prices when currency changes
+                        const updatedItems = items.map((item) => {
+                          const product = products.find((p) => p.id === item.product_id);
+                          if (product) {
+                            const newPrice =
+                              value === "IQD"
+                                ? product.unit_price_iqd ?? 0
+                                : product.unit_price_usd ?? 0;
+                            return {
+                              ...item,
+                              unit_price: newPrice,
+                              total: (item.quantity || 1) * newPrice,
+                            };
+                          }
+                          return item;
+                        });
+                        setItems(updatedItems);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="IQD">Iraqi Dinar (IQD)</SelectItem>
+                        <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="invoice-date">Invoice Date</Label>
+                    <Input
+                      id="invoice-date"
+                      type="date"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[250px]">Product</TableHead>
+                        <TableHead>Serial Number</TableHead>
+                        <TableHead className="w-[100px]">Quantity</TableHead>
+                        <TableHead className="w-[120px]">Unit Price</TableHead>
+                        <TableHead className="w-[120px]">Total</TableHead>
+                        <TableHead className="w-[60px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Select
+                              value={item.product_id || ""}
+                              onValueChange={(value) =>
+                                updateItem(index, "product_id", value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select product" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products.map((product) => (
+                                  <SelectItem key={product.id} value={product.id}>
+                                    {product.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={item.serial_number || ""}
+                              onChange={(e) =>
+                                updateItem(index, "serial_number", e.target.value)
+                              }
+                              placeholder="Serial #"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity || 1}
+                              onChange={(e) =>
+                                updateItem(index, "quantity", parseInt(e.target.value) || 1)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={item.unit_price || 0}
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "unit_price",
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {currency === "USD"
+                              ? `$${(item.total || 0).toFixed(2)}`
+                              : `${(item.total || 0).toLocaleString()} IQD`}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removeItem(index)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <Button type="button" variant="outline" onClick={addItem}>
+                  <Plus size={16} className="mr-2" />
+                  Add Item
+                </Button>
+
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex justify-between text-lg">
+                    <span>Subtotal:</span>
+                    <span className="font-semibold">
+                      {currency === "USD"
+                        ? `$${calculateSubtotal().toFixed(2)}`
+                        : `${calculateSubtotal().toLocaleString()} IQD`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="shipping">Shipping Cost:</Label>
+                    <Input
+                      id="shipping"
+                      type="number"
+                      step="0.01"
+                      value={shippingCost}
+                      onChange={(e) =>
+                        setShippingCost(parseFloat(e.target.value) || 0)
+                      }
+                      className="w-32 text-right"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xl font-bold border-t pt-3">
+                    <span>Total:</span>
+                    <span>
+                      {currency === "USD"
+                        ? `$${calculateTotal().toFixed(2)}`
+                        : `${calculateTotal().toLocaleString()} IQD`}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Additional Details */}
+          {selectedBrand && items.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>5. Additional Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="warranty">Warranty Terms</Label>
+                  <Textarea
+                    id="warranty"
+                    value={warrantyText}
+                    onChange={(e) => setWarrantyText(e.target.value)}
+                    rows={4}
+                    placeholder="Warranty terms and conditions..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Additional notes for this invoice..."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push("/invoices")}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading} className="min-w-32">
+              {loading ? "Creating..." : "Create Invoice"}
+            </Button>
+          </div>
+        </form>
+
+        {/* New Customer Dialog */}
+        <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Customer</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateCustomer} className="space-y-4">
+              <div>
+                <Label htmlFor="new-customer-name">Name *</Label>
+                <Input
+                  id="new-customer-name"
+                  value={newCustomerForm.name}
+                  onChange={(e) =>
+                    setNewCustomerForm({ ...newCustomerForm, name: e.target.value })
+                  }
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Additional notes for this invoice..."
+                <Label htmlFor="new-customer-phone">Phone</Label>
+                <Input
+                  id="new-customer-phone"
+                  value={newCustomerForm.phone}
+                  onChange={(e) =>
+                    setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })
+                  }
                 />
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Submit Button */}
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/invoices")}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading} className="min-w-32">
-            {loading ? "Creating..." : "Create Invoice"}
-          </Button>
-        </div>
-      </form>
-
-      {/* New Customer Dialog */}
-      <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Customer</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateCustomer} className="space-y-4">
-            <div>
-              <Label htmlFor="new-customer-name">Name *</Label>
-              <Input
-                id="new-customer-name"
-                value={newCustomerForm.name}
-                onChange={(e) =>
-                  setNewCustomerForm({ ...newCustomerForm, name: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="new-customer-phone">Phone</Label>
-              <Input
-                id="new-customer-phone"
-                value={newCustomerForm.phone}
-                onChange={(e) =>
-                  setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="new-customer-email">Email</Label>
-              <Input
-                id="new-customer-email"
-                type="email"
-                value={newCustomerForm.email}
-                onChange={(e) =>
-                  setNewCustomerForm({ ...newCustomerForm, email: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="new-customer-address">Address</Label>
-              <Textarea
-                id="new-customer-address"
-                value={newCustomerForm.address}
-                onChange={(e) =>
-                  setNewCustomerForm({
-                    ...newCustomerForm,
-                    address: e.target.value,
-                  })
-                }
-                rows={2}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowCustomerDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Create Customer</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+              <div>
+                <Label htmlFor="new-customer-email">Email</Label>
+                <Input
+                  id="new-customer-email"
+                  type="email"
+                  value={newCustomerForm.email}
+                  onChange={(e) =>
+                    setNewCustomerForm({ ...newCustomerForm, email: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-customer-address">Address</Label>
+                <Textarea
+                  id="new-customer-address"
+                  value={newCustomerForm.address}
+                  onChange={(e) =>
+                    setNewCustomerForm({
+                      ...newCustomerForm,
+                      address: e.target.value,
+                    })
+                  }
+                  rows={2}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCustomerDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Create Customer</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </ProtectedRoute>
   );
 }

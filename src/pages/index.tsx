@@ -1,6 +1,8 @@
 import React from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import LogoutButton from "@/components/LogoutButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   FileText, 
@@ -61,7 +63,7 @@ export default function Home() {
   ];
 
   return (
-    <>
+    <ProtectedRoute>
       <Head>
         <title>لوحة التحكم الرئيسية - Invoice PRO</title>
         <meta name="description" content="نظام إدارة الفواتير والمبيعات" />
@@ -70,6 +72,11 @@ export default function Home() {
 
       <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="container mx-auto px-4 py-8 md:py-12">
+          {/* Header Section with Logout Button */}
+          <div className="flex justify-end mb-4">
+            <LogoutButton />
+          </div>
+
           {/* Header Section */}
           <div className="text-center mb-12 space-y-3">
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -173,6 +180,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-    </>
+    </ProtectedRoute>
   );
 }
