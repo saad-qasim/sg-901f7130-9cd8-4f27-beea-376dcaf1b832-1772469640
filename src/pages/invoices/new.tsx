@@ -281,21 +281,24 @@ export default function NewInvoicePage() {
                 <div className="space-y-2">
                   <Label htmlFor="customer">العميل</Label>
                   <div className="flex gap-2">
-                    <Select
-                      onValueChange={setSelectedCustomerId}
-                      value={selectedCustomerId || ""}
-                    >
-                      <SelectTrigger id="customer">
-                        <SelectValue placeholder="اختر عميل" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {customers.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} ({c.phone})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex-1 relative">
+                      <Select
+                        onValueChange={setSelectedCustomerId}
+                        value={selectedCustomerId || ""}
+                        dir="rtl"
+                      >
+                        <SelectTrigger id="customer">
+                          <SelectValue placeholder="اختر عميل" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customers.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name} ({c.phone})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Button
                       size="icon"
                       variant="outline"
@@ -307,21 +310,24 @@ export default function NewInvoicePage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="brand">العلامة التجارية</Label>
-                  <Select
-                    onValueChange={handleBrandChange}
-                    value={selectedBrandId || ""}
-                  >
-                    <SelectTrigger id="brand">
-                      <SelectValue placeholder="اختر علامة تجارية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <Select
+                      onValueChange={handleBrandChange}
+                      value={selectedBrandId || ""}
+                      dir="rtl"
+                    >
+                      <SelectTrigger id="brand">
+                        <SelectValue placeholder="اختر علامة تجارية" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brands.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
