@@ -39,21 +39,21 @@ export type Database = {
           company_name: string | null
           created_at: string
           default_currency: string | null
-          id: number
+          id: string
         }
         Insert: {
           company_info_text?: string | null
           company_name?: string | null
           created_at?: string
           default_currency?: string | null
-          id?: number
+          id?: string
         }
         Update: {
           company_info_text?: string | null
           company_name?: string | null
           created_at?: string
           default_currency?: string | null
-          id?: number
+          id?: string
         }
         Relationships: []
       }
