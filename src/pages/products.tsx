@@ -29,7 +29,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Edit } from "lucide-react";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
@@ -38,7 +38,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductWithBrand | null>(null);
   const [formData, setFormData] = useState<ProductInsert>({
     brand_id: "",
@@ -79,7 +79,7 @@ export default function ProductsPage() {
       } else {
         await productService.createProduct(formData);
       }
-      setDialogOpen(false);
+      setShowDialog(false);
       resetForm();
       loadData();
     } catch (error) {
@@ -99,7 +99,7 @@ export default function ProductsPage() {
       unit_price_iqd: product.unit_price_iqd || 0,
       unit_price_usd: product.unit_price_usd || 0,
     });
-    setDialogOpen(true);
+    setShowDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -130,8 +130,8 @@ export default function ProductsPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold">Products</h1>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
+        <Dialog open={showDialog} onOpenChange={(open) => {
+          setShowDialog(open);
           if (!open) resetForm();
         }}>
           <DialogTrigger asChild>
@@ -254,7 +254,7 @@ export default function ProductsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setDialogOpen(false)}
+                  onClick={() => setShowDialog(false)}
                 >
                   Cancel
                 </Button>

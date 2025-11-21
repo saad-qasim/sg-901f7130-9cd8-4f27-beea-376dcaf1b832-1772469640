@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
@@ -13,9 +12,11 @@ import {
 } from "@/components/ui/table";
 import { Plus, Eye } from "lucide-react";
 
-export default function InvoicesPage() {
+type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
+
+export default function InvoicesListPage() {
   const router = useRouter();
-  const [invoices, setInvoices] = useState<InvoiceWithRelations[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
