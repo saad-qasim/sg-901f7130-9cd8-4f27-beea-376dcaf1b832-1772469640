@@ -134,16 +134,19 @@ export const userService = {
   },
 
   async deleteUser(id: string): Promise<void> {
-    // Delete profile (this should cascade or be handled separately)
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .delete()
-      .eq("id", id);
+    // Call server-side API route to delete both profile and auth user
+    const response = await fetch("/api/admin/delete-user", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId: id }),
+    });
 
-    if (profileError) throw profileError;
+    const result = await response.json();
 
-    // Note: Deleting from auth.users should ideally also be done via API route
-    // For now, we just delete the profile. The auth user will remain orphaned.
-    // To fully implement this, create a /api/admin/delete-user.ts endpoint
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Failed to delete user");
+    }
   },
 };

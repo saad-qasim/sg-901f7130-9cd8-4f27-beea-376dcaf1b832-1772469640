@@ -28,8 +28,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Plus, Edit, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Edit, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type PermissionKey = 
   | "can_create_invoices"
@@ -44,8 +54,11 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
+  const [userToDelete, setUserToDelete] = useState<ProfileWithEmail | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [tempPassword, setTempPassword] = useState<string>("");
@@ -174,6 +187,32 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleDeleteClick = (user: ProfileWithEmail) => {
+    setUserToDelete(user);
+    setShowDeleteDialog(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    try {
+      setDeleting(true);
+      await userService.deleteUser(userToDelete.id);
+      setSuccessMessage(`تم حذف الموظف "${userToDelete.name}" بنجاح`);
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
+      await loadUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      setErrorMessage(error.message || "حدث خطأ أثناء حذف الموظف");
+      setShowDeleteDialog(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const updateEditPermission = (permission: PermissionKey, value: boolean) => {
     setEditForm({ ...editForm, [permission]: value });
   };
@@ -290,13 +329,25 @@ export default function AdminUsersPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleEditClick(user)}
-                    >
-                      <Edit size={16} />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleEditClick(user)}
+                        title="تعديل الموظف"
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDeleteClick(user)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="حذف الموظف"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -634,6 +685,33 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle dir="rtl">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription dir="rtl">
+              هل أنت متأكد من حذف هذا الموظف؟ سيتم حذف حسابه وجميع بياناته بشكل دائم.
+              <br />
+              <br />
+              <span className="font-semibold">الموظف: {userToDelete?.name}</span>
+              <br />
+              <span className="text-sm text-muted-foreground">{userToDelete?.email}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleting ? "جاري الحذف..." : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
