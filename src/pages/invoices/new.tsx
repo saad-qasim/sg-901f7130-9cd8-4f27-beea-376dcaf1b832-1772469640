@@ -43,6 +43,7 @@ type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"]
 export default function NewInvoicePage() {
   const router = useRouter();
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [invoiceTitle, setInvoiceTitle] = useState("فاتورة بيع");
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -190,6 +191,10 @@ export default function NewInvoicePage() {
       alert("Please add at least one product to the invoice.");
       return;
     }
+    if (!invoiceTitle.trim()) {
+      alert("يرجى إدخال اسم الفاتورة");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -197,6 +202,7 @@ export default function NewInvoicePage() {
         customer_id: selectedCustomerId,
         brand_id: selectedBrandId,
         invoice_number: invoiceNumber,
+        invoice_title: invoiceTitle.trim(),
         invoice_date: invoiceDate,
         total,
         currency,
@@ -420,6 +426,15 @@ export default function NewInvoicePage() {
                 <CardTitle>معلومات الفاتورة</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invoice-title">اسم الفاتورة</Label>
+                  <Input
+                    id="invoice-title"
+                    value={invoiceTitle}
+                    onChange={(e) => setInvoiceTitle(e.target.value)}
+                    placeholder="فاتورة بيع"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="invoice-number">رقم الفاتورة</Label>
                   <Input
