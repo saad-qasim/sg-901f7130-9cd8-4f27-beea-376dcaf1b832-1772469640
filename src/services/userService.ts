@@ -1,18 +1,25 @@
-
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
 
-type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
-export interface ProfileWithEmail extends ProfileRow {
-  email: string | null;
+// Define an explicit type for Profile, as the auto-generated one is out of sync.
+export interface AppProfile {
+  id: string;
+  created_at: string;
+  name: string | null;
+  phone: string | null;
+  role: string | null;
   can_create_invoices: boolean | null;
   can_delete_invoices: boolean | null;
   can_edit_invoices: boolean | null;
   can_add_brand: boolean | null;
   can_add_product: boolean | null;
   can_view_stats: boolean | null;
+}
+
+export interface ProfileWithEmail extends AppProfile {
+  email: string | null;
 }
 
 export interface CreateUserData {
@@ -38,6 +45,9 @@ export const userService = {
     if (profilesError) throw profilesError;
     if (!profiles || profiles.length === 0) return [];
 
+    // Cast the data to our correct, manually defined type.
+    const typedProfiles = profiles as AppProfile[];
+
     const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
       page: 1,
       perPage: 1000,
@@ -45,7 +55,7 @@ export const userService = {
 
     if (usersError) {
       console.error("Error fetching auth users:", usersError);
-      return profiles.map(profile => ({
+      return typedProfiles.map(profile => ({
         ...profile,
         email: null,
       }));
@@ -53,7 +63,7 @@ export const userService = {
     
     const emailMap = new Map<string, string | undefined>(users.users.map(u => [u.id, u.email]));
 
-    const profilesWithEmails: ProfileWithEmail[] = profiles.map(profile => ({
+    const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
       ...profile,
       email: emailMap.get(profile.id) ?? null,
     }));
@@ -61,7 +71,7 @@ export const userService = {
     return profilesWithEmails;
   },
 
-  async updateProfile(id: string, updates: ProfileUpdate): Promise<ProfileRow> {
+  async updateProfile(id: string, updates: ProfileUpdate): Promise<AppProfile> {
     const { data, error } = await supabase
       .from("profiles")
       .update(updates)
@@ -70,7 +80,7 @@ export const userService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as AppProfile;
   },
 
   async createUser(userData: CreateUserData): Promise<{ userId: string; temporaryPassword: string }> {
