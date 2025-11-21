@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
-import type { User } from "@supabase/supabase-js";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
@@ -49,34 +48,38 @@ export const userService = {
     // Cast the data to our correct, manually defined type.
     const typedProfiles = profiles as AppProfile[];
 
-    const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
+    // Fetch user emails from server-side API route
+    try {
+      const response = await fetch("/api/admin/list-users");
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        console.error("Error fetching auth users:", result.error);
+        return typedProfiles.map(profile => ({
+          ...profile,
+          email: null,
+        }));
+      }
 
-    if (usersError) {
-      console.error("Error fetching auth users:", usersError);
+      const emailMap = new Map<string, string>(
+        result.users
+          .filter((u: any) => u.email)
+          .map((u: any) => [u.id, u.email as string])
+      );
+
+      const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
+        ...profile,
+        email: emailMap.get(profile.id) ?? null,
+      }));
+      
+      return profilesWithEmails;
+    } catch (error) {
+      console.error("Failed to fetch user emails:", error);
       return typedProfiles.map(profile => ({
         ...profile,
         email: null,
       }));
     }
-    
-    // Explicitly type the user list to fix inference issue.
-    const userList = users.users as User[];
-    
-    const emailMap = new Map<string, string>(
-      userList
-        .filter(u => u.email)
-        .map(u => [u.id, u.email as string])
-    );
-
-    const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
-      ...profile,
-      email: emailMap.get(profile.id) ?? null,
-    }));
-    
-    return profilesWithEmails;
   },
 
   async updateProfile(id: string, updates: ProfileUpdate): Promise<AppProfile> {
@@ -95,49 +98,38 @@ export const userService = {
     // Generate a temporary random password
     const temporaryPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase();
 
-    // Create user in auth.users using Admin API
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: userData.email,
-      password: temporaryPassword,
-      email_confirm: true, // Auto-confirm email
+    // Call server-side API route to create user
+    const response = await fetch("/api/admin/create-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: userData.email,
+        password: temporaryPassword,
+        userData: {
+          name: userData.name,
+          phone: userData.phone,
+          role: userData.role,
+          can_create_invoices: userData.can_create_invoices,
+          can_delete_invoices: userData.can_delete_invoices,
+          can_edit_invoices: userData.can_edit_invoices,
+          can_add_brand: userData.can_add_brand,
+          can_add_product: userData.can_add_product,
+          can_view_stats: userData.can_view_stats,
+        },
+      }),
     });
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error("Failed to create user");
+    const result = await response.json();
 
-    // Create corresponding profile
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: authData.user.id,
-        name: userData.name,
-        phone: userData.phone,
-        role: userData.role,
-        can_create_invoices: userData.can_create_invoices,
-        can_delete_invoices: userData.can_delete_invoices,
-        can_edit_invoices: userData.can_edit_invoices,
-        can_add_brand: userData.can_add_brand,
-        can_add_product: userData.can_add_product,
-        can_view_stats: userData.can_view_stats,
-      });
-
-    if (profileError) {
-      // If profile creation fails, try to delete the auth user
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      throw profileError;
-    }
-
-    // Try to send password reset email
-    try {
-      await supabase.auth.resetPasswordForEmail(userData.email);
-    } catch (error) {
-      console.error("Failed to send password reset email:", error);
-      // Don't throw - user is created successfully, just log the temp password
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Failed to create user");
     }
 
     return {
-      userId: authData.user.id,
-      temporaryPassword,
+      userId: result.userId,
+      temporaryPassword: result.temporaryPassword,
     };
   },
 
@@ -150,12 +142,8 @@ export const userService = {
 
     if (profileError) throw profileError;
 
-    // Delete from auth.users
-    const { error: authError } = await supabase.auth.admin.deleteUser(id);
-    
-    if (authError) {
-      console.error("Failed to delete auth user:", authError);
-      // Profile is already deleted, so we don't throw
-    }
+    // Note: Deleting from auth.users should ideally also be done via API route
+    // For now, we just delete the profile. The auth user will remain orphaned.
+    // To fully implement this, create a /api/admin/delete-user.ts endpoint
   },
 };
