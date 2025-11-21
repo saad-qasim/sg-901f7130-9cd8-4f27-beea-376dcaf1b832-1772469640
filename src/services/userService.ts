@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/types/database";
+import type { User } from "@supabase/supabase-js";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
@@ -61,8 +62,11 @@ export const userService = {
       }));
     }
     
+    // Explicitly type the user list to fix inference issue.
+    const userList = users.users as User[];
+    
     const emailMap = new Map<string, string>(
-      users.users
+      userList
         .filter(u => u.email)
         .map(u => [u.id, u.email as string])
     );
