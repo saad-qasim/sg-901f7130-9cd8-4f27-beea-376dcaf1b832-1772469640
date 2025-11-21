@@ -135,6 +135,7 @@ export type Database = {
       invoices: {
         Row: {
           brand_id: string
+          company_id: string | null
           company_info_snapshot: string | null
           created_at: string
           created_by: string | null
@@ -152,6 +153,7 @@ export type Database = {
         }
         Insert: {
           brand_id: string
+          company_id?: string | null
           company_info_snapshot?: string | null
           created_at?: string
           created_by?: string | null
@@ -169,6 +171,7 @@ export type Database = {
         }
         Update: {
           brand_id?: string
+          company_id?: string | null
           company_info_snapshot?: string | null
           created_at?: string
           created_by?: string | null
@@ -190,6 +193,13 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_settings"
             referencedColumns: ["id"]
           },
           {
