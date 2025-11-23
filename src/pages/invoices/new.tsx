@@ -83,15 +83,29 @@ export default function NewInvoicePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: customersData } = await supabase
+        // Fetch customers with error handling
+        const { data: customersData, error: customersError } = await supabase
           .from("customers")
           .select("*")
           .order("name", { ascending: true });
 
-        const { data: brandsData } = await supabase
+        if (customersError) {
+          console.error("Error fetching customers:", customersError);
+        } else {
+          console.log("Customers fetched:", customersData?.length || 0, "items", customersData);
+        }
+
+        // Fetch brands with error handling
+        const { data: brandsData, error: brandsError } = await supabase
           .from("brands")
           .select("*")
           .order("name", { ascending: true });
+
+        if (brandsError) {
+          console.error("Error fetching brands:", brandsError);
+        } else {
+          console.log("Brands fetched:", brandsData?.length || 0, "items", brandsData);
+        }
 
         const [productsData, nextInvoiceNum, settingsData] = await Promise.all([
           productService.getAllProducts(),
@@ -99,12 +113,16 @@ export default function NewInvoicePage() {
           companyService.getCompanySettings(),
         ]);
 
+        // Set state with fallback to empty arrays
         setCustomers(customersData || []);
         setBrands(brandsData || []);
         setProducts(productsData);
         setFilteredProducts(productsData);
         setInvoiceNumber(nextInvoiceNum.toString());
         setCompanySettings(settingsData);
+
+        // Debug log final state
+        console.log("Final state set - Customers:", customersData?.length || 0, "Brands:", brandsData?.length || 0);
       } catch (error) {
         console.error("Error fetching initial data:", error);
       }
