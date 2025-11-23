@@ -322,9 +322,9 @@ export default function NewInvoicePage() {
       );
 
       router.push(`/invoices`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating invoice:", error);
-      alert("Failed to create invoice");
+      alert(error.message || "Failed to create invoice. Please check the details and try again.");
     } finally {
       setSaving(false);
     }

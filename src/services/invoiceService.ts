@@ -4,7 +4,8 @@ import { Database } from "@/integrations/supabase/types";
 type InvoiceRow = Database["public"]["Tables"]["invoices"]["Row"];
 type InvoiceItemRow = Database["public"]["Tables"]["invoice_items"]["Row"];
 type InvoiceInsertType = Database["public"]["Tables"]["invoices"]["Insert"];
-type InvoiceItemInsertType = Database["public"]["Tables"]["invoice_items"]["Insert"];
+type InvoiceItemInsertType =
+  Database["public"]["Tables"]["invoice_items"]["Insert"];
 
 export type InvoiceWithRelations = InvoiceRow & {
   invoice_title: string | null;
@@ -27,10 +28,11 @@ export interface InvoiceCreateData {
 }
 
 export const invoiceService = {
-  async getAllInvoices(): Promise<Omit<InvoiceWithRelations, 'invoice_items'>[]> {
+  async getAllInvoices(): Promise<Omit<InvoiceWithRelations, "invoice_items">[]> {
     const { data, error } = await supabase
       .from("invoices")
-      .select(`
+      .select(
+        `
         *,
         invoice_title,
         customers (
@@ -43,7 +45,8 @@ export const invoiceService = {
           name,
           logo_url
         )
-      `)
+      `
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -53,7 +56,8 @@ export const invoiceService = {
   async getInvoiceById(id: string): Promise<InvoiceWithRelations> {
     const { data, error } = await supabase
       .from("invoices")
-      .select(`
+      .select(
+        `
         *,
         invoice_title,
         customers (
@@ -69,7 +73,8 @@ export const invoiceService = {
         invoice_items (
           *
         )
-      `)
+      `
+      )
       .eq("id", id)
       .single();
 
@@ -145,7 +150,10 @@ export const invoiceService = {
         .single();
 
       if (fetchError) {
-        console.error(`فشل في جلب مخزون المنتج ${item.product_id}:`, fetchError);
+        console.error(
+          `فشل في جلب مخزون المنتج ${item.product_id}:`,
+          fetchError
+        );
         continue; // الاستمرار مع المنتجات الأخرى
       }
 
@@ -159,7 +167,10 @@ export const invoiceService = {
         .eq("id", item.product_id);
 
       if (updateError) {
-        console.error(`فشل في تحديث مخزون المنتج ${item.product_id}:`, updateError);
+        console.error(
+          `فشل في تحديث مخزون المنتج ${item.product_id}:`,
+          updateError
+        );
         // لا نرمي خطأ هنا لأن الفاتورة تم إنشاؤها بالفعل
       }
     }
@@ -167,7 +178,10 @@ export const invoiceService = {
     return invoice;
   },
 
-  async updateInvoice(id: string, updates: Database["public"]["Tables"]["invoices"]["Update"]): Promise<Database["public"]["Tables"]["invoices"]["Row"]> {
+  async updateInvoice(
+    id: string,
+    updates: Database["public"]["Tables"]["invoices"]["Update"]
+  ): Promise<Database["public"]["Tables"]["invoices"]["Row"]> {
     const { data, error } = await supabase
       .from("invoices")
       .update(updates)
@@ -188,7 +202,9 @@ export const invoiceService = {
       .single();
 
     if (companyError) {
-      throw new Error(`Failed to fetch company settings: ${companyError.message}`);
+      throw new Error(
+        `Failed to fetch company settings: ${companyError.message}`
+      );
     }
 
     // 2. جلب آخر فاتورة لهذه الشركة
@@ -205,7 +221,7 @@ export const invoiceService = {
     }
 
     // 3. استخراج الجزء الرقمي من رقم الفاتورة الأخير إن وجد
-    let currentNumber = company.invoice_start_number - 1;
+    let currentNumber = (company.invoice_start_number || 1) - 1;
 
     if (lastInvoice?.invoice_number) {
       const match = lastInvoice.invoice_number.match(/(\d+)$/);
@@ -221,14 +237,13 @@ export const invoiceService = {
     const nextNumber = currentNumber + 1;
     const padded = nextNumber.toString().padStart(6, "0");
     const invoiceNumber = `${company.invoice_prefix}${padded}`;
-    
+
     return invoiceNumber;
   },
 
   async searchBySerialNumber(serialNumber: string) {
-    const { data, error } = await supabase
-      .from("invoice_items")
-      .select(`
+    const { data, error } = await supabase.from("invoice_items").select(
+      `
         *,
         invoices (
           *,
@@ -244,18 +259,20 @@ export const invoiceService = {
             logo_url
           )
         )
-      `)
-      .eq("serial_number", serialNumber);
+      `
+    ).eq("serial_number", serialNumber);
 
     if (error) throw error;
     return data;
   },
 
-  async searchInvoices(searchTerm: string): Promise<Omit<InvoiceWithRelations, 'invoice_items'>[]> {
-    // Search by customer name (starts with) OR phone (contains) OR serial number (contains)
+  async searchInvoices(
+    searchTerm: string
+  ): Promise<Omit<InvoiceWithRelations, "invoice_items">[]> {
     const { data: invoicesByCustomer, error: customerError } = await supabase
       .from("invoices")
-      .select(`
+      .select(
+        `
         *,
         invoice_title,
         customers!inner (
@@ -268,13 +285,15 @@ export const invoiceService = {
           name,
           logo_url
         )
-      `)
-      .or(`customers.name.ilike.${searchTerm}%,customers.phone.ilike.%${searchTerm}%`)
+      `
+      )
+      .or(
+        `customers.name.ilike.${searchTerm}%,customers.phone.ilike.%${searchTerm}%`
+      )
       .order("created_at", { ascending: false });
 
     if (customerError) throw customerError;
 
-    // Search by serial number in invoice_items
     const { data: itemsWithSerial, error: serialError } = await supabase
       .from("invoice_items")
       .select(`
@@ -284,17 +303,16 @@ export const invoiceService = {
 
     if (serialError) throw serialError;
 
-    // Get unique invoice IDs from serial number search
     const invoiceIdsFromSerial = Array.from(
-      new Set(itemsWithSerial?.map(item => item.invoice_id) || [])
+      new Set(itemsWithSerial?.map((item) => item.invoice_id) || [])
     );
 
-    // Fetch invoices by IDs from serial search
     let invoicesBySerial: any[] = [];
     if (invoiceIdsFromSerial.length > 0) {
       const { data, error } = await supabase
         .from("invoices")
-        .select(`
+        .select(
+          `
           *,
           invoice_title,
           customers (
@@ -307,7 +325,8 @@ export const invoiceService = {
             name,
             logo_url
           )
-        `)
+        `
+        )
         .in("id", invoiceIdsFromSerial)
         .order("created_at", { ascending: false });
 
@@ -315,30 +334,21 @@ export const invoiceService = {
       invoicesBySerial = data || [];
     }
 
-    // Combine results and remove duplicates
     const allInvoices = [...(invoicesByCustomer || []), ...invoicesBySerial];
     const uniqueInvoices = Array.from(
-      new Map(allInvoices.map(invoice => [invoice.id, invoice])).values()
+      new Map(allInvoices.map((invoice) => [invoice.id, invoice])).values()
     );
 
     return uniqueInvoices;
   },
 
   async deleteInvoice(id: string): Promise<void> {
-    const { error } = await supabase
-      .from("invoices")
-      .delete()
-      .eq("id", id);
-
+    const { error } = await supabase.from("invoices").delete().eq("id", id);
     if (error) throw error;
   },
 
   async deleteInvoices(ids: string[]): Promise<void> {
-    const { error } = await supabase
-      .from("invoices")
-      .delete()
-      .in("id", ids);
-
+    const { error } = await supabase.from("invoices").delete().in("id", ids);
     if (error) throw error;
   },
 
@@ -347,7 +357,6 @@ export const invoiceService = {
     invoiceData: Database["public"]["Tables"]["invoices"]["Update"],
     itemsData: InvoiceItemInsertType[]
   ): Promise<InvoiceRow> {
-    // 1. Update the invoice
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
       .update(invoiceData)
@@ -358,7 +367,6 @@ export const invoiceService = {
     if (invoiceError) throw invoiceError;
     if (!invoice) throw new Error("Failed to update invoice record.");
 
-    // 2. Delete existing items
     const { error: deleteError } = await supabase
       .from("invoice_items")
       .delete()
@@ -366,7 +374,6 @@ export const invoiceService = {
 
     if (deleteError) throw deleteError;
 
-    // 3. Insert new items
     const itemsWithInvoiceId = itemsData.map((item) => ({
       ...item,
       invoice_id: id,
@@ -383,7 +390,6 @@ export const invoiceService = {
 
   async markInvoiceAsPaid(id: string): Promise<void> {
     const now = new Date().toISOString();
-
     const { error } = await supabase
       .from("invoices")
       .update({
@@ -393,5 +399,5 @@ export const invoiceService = {
       .eq("id", id);
 
     if (error) throw error;
-  }
+  },
 };

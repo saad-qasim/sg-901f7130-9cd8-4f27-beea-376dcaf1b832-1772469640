@@ -241,8 +241,10 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          low_stock_threshold: number
           model_number: string | null
           name: string
+          stock_quantity: number
           unit_price_iqd: number | null
           unit_price_usd: number | null
           warranty_text: string | null
@@ -252,8 +254,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          low_stock_threshold?: number
           model_number?: string | null
           name: string
+          stock_quantity?: number
           unit_price_iqd?: number | null
           unit_price_usd?: number | null
           warranty_text?: string | null
@@ -263,8 +267,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          low_stock_threshold?: number
           model_number?: string | null
           name?: string
+          stock_quantity?: number
           unit_price_iqd?: number | null
           unit_price_usd?: number | null
           warranty_text?: string | null

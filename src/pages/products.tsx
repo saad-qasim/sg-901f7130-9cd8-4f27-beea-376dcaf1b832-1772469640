@@ -28,7 +28,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, Edit } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -40,7 +40,9 @@ export default function ProductsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductWithBrand | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductWithBrand | null>(
+    null
+  );
   const [formData, setFormData] = useState<ProductInsert>({
     brand_id: "",
     name: "",
@@ -139,10 +141,13 @@ export default function ProductsPage() {
         <BackButton />
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Products</h1>
-          <Dialog open={showDialog} onOpenChange={(open) => {
-            setShowDialog(open);
-            if (!open) resetForm();
-          }}>
+          <Dialog
+            open={showDialog}
+            onOpenChange={(open) => {
+              setShowDialog(open);
+              if (!open) resetForm();
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus size={16} />
@@ -246,7 +251,6 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {/* حقول المخزون الجديدة */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="stock_quantity">الكمية في المخزون</Label>
@@ -264,7 +268,9 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="low_stock_threshold">حد التنبيه الأدنى</Label>
+                    <Label htmlFor="low_stock_threshold">
+                      حد التنبيه الأدنى
+                    </Label>
                     <Input
                       id="low_stock_threshold"
                       type="number"
@@ -273,7 +279,8 @@ export default function ProductsPage() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          low_stock_threshold: parseInt(e.target.value) || 0,
+                          low_stock_threshold:
+                            parseInt(e.target.value) || 0,
                         })
                       }
                     />
@@ -286,7 +293,10 @@ export default function ProductsPage() {
                     id="warranty"
                     value={formData.warranty_text}
                     onChange={(e) =>
-                      setFormData({ ...formData, warranty_text: e.target.value })
+                      setFormData({
+                        ...formData,
+                        warranty_text: e.target.value,
+                      })
                     }
                     rows={3}
                     placeholder="Optional product-specific warranty text..."
@@ -333,7 +343,9 @@ export default function ProductsPage() {
               <TableBody>
                 {products.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
                     <TableCell>{product.brands?.name || "—"}</TableCell>
                     <TableCell>{product.model_number || "—"}</TableCell>
                     <TableCell>
@@ -347,11 +359,15 @@ export default function ProductsPage() {
                         : "—"}
                     </TableCell>
                     <TableCell>
-                      <span className={`font-semibold ${
-                        (product.stock_quantity || 0) <= (product.low_stock_threshold || 0)
-                          ? 'text-red-600'
-                          : 'text-green-600'
-                      }`}>
+                      <span
+                        className={`font-semibold ${
+                          (product.stock_quantity || 0) > 0 &&
+                          (product.stock_quantity || 0) <=
+                            (product.low_stock_threshold || 0)
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }`}
+                      >
                         {product.stock_quantity || 0}
                       </span>
                     </TableCell>
