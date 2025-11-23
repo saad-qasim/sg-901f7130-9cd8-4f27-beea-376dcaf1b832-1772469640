@@ -204,20 +204,24 @@ export default function NewInvoicePage() {
 
   const handleItemChange = (
     index: number,
-    field: "quantity" | "unit_price",
+    field: "quantity" | "unit_price" | "serial_number",
     value: string | number
   ) => {
     const updatedItems = [...invoiceItems];
     const item = updatedItems[index];
 
-    const numericValue = Number(value);
-    if (field === "quantity") {
-      item.quantity = numericValue;
-    } else if (field === "unit_price") {
-      item.unit_price = numericValue;
+    if (field === "serial_number") {
+      item.serial_number = value as string;
+    } else {
+      const numericValue = Number(value);
+      if (field === "quantity") {
+        item.quantity = numericValue;
+      } else if (field === "unit_price") {
+        item.unit_price = numericValue;
+      }
+      item.total = (item.quantity || 0) * (item.unit_price || 0);
     }
 
-    item.total = (item.quantity || 0) * (item.unit_price || 0);
     setInvoiceItems(updatedItems);
   };
 
@@ -493,7 +497,17 @@ export default function NewInvoicePage() {
                             <TableCell className="font-medium">
                               {item.product_name_snapshot}
                             </TableCell>
-                            <TableCell>{item.serial_number}</TableCell>
+                            <TableCell>
+                              <Input
+                                type="text"
+                                className="border rounded-md px-2 py-1 w-full text-sm"
+                                value={item.serial_number || ""}
+                                onChange={(e) =>
+                                  handleItemChange(index, "serial_number", e.target.value)
+                                }
+                                placeholder="SN / الرقم التسلسلي"
+                              />
+                            </TableCell>
                             <TableCell>
                               <Input
                                 type="number"

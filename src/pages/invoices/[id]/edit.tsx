@@ -717,6 +717,8 @@ export default function EditInvoicePage() {
                           </TableCell>
                           <TableCell>
                             <Input
+                              type="text"
+                              className="border rounded-md px-2 py-1 w-full text-sm"
                               value={item.serial_number}
                               onChange={(e) =>
                                 handleItemFieldChange(
@@ -725,7 +727,7 @@ export default function EditInvoicePage() {
                                   e.target.value
                                 )
                               }
-                              placeholder="SN123456"
+                              placeholder="SN / الرقم التسلسلي"
                             />
                           </TableCell>
                           <TableCell>
