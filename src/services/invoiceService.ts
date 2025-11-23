@@ -81,7 +81,33 @@ export const invoiceService = {
     invoiceData: InvoiceInsertType,
     itemsData: InvoiceItemInsertType[]
   ): Promise<InvoiceRow> {
-    // 1. Create the invoice
+    // 1. التحقق من توفر المخزون لكل منتج
+    for (const item of itemsData) {
+      if (!item.product_id) {
+        throw new Error("كل عنصر يجب أن يحتوي على product_id");
+      }
+
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .select("name, stock_quantity")
+        .eq("id", item.product_id)
+        .single();
+
+      if (productError) {
+        throw new Error(`فشل في جلب بيانات المنتج: ${productError.message}`);
+      }
+
+      const availableStock = product.stock_quantity || 0;
+      const requestedQuantity = item.quantity || 0;
+
+      if (availableStock < requestedQuantity) {
+        throw new Error(
+          `الكمية المطلوبة من المنتج "${product.name}" أكبر من المتوفر في المخزون (${availableStock} متوفر).`
+        );
+      }
+    }
+
+    // 2. إنشاء الفاتورة
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
       .insert(invoiceData)
@@ -91,7 +117,7 @@ export const invoiceService = {
     if (invoiceError) throw invoiceError;
     if (!invoice) throw new Error("Failed to create invoice record.");
 
-    // 2. Add invoice_id to each item and insert them
+    // 3. إضافة invoice_id لكل عنصر وإدراجها
     const itemsWithInvoiceId = itemsData.map((item) => ({
       ...item,
       invoice_id: invoice.id,
@@ -102,9 +128,40 @@ export const invoiceService = {
       .insert(itemsWithInvoiceId);
 
     if (itemsError) {
-      // Optional: attempt to delete the orphaned invoice if items fail
+      // محاولة حذف الفاتورة اليتيمة إذا فشل إدراج العناصر
       await supabase.from("invoices").delete().eq("id", invoice.id);
       throw itemsError;
+    }
+
+    // 4. تحديث المخزون لكل منتج
+    for (const item of itemsData) {
+      if (!item.product_id) continue;
+
+      // جلب الكمية الحالية
+      const { data: product, error: fetchError } = await supabase
+        .from("products")
+        .select("stock_quantity")
+        .eq("id", item.product_id)
+        .single();
+
+      if (fetchError) {
+        console.error(`فشل في جلب مخزون المنتج ${item.product_id}:`, fetchError);
+        continue; // الاستمرار مع المنتجات الأخرى
+      }
+
+      const currentStock = product.stock_quantity || 0;
+      const newStock = currentStock - (item.quantity || 0);
+
+      // تحديث المخزون
+      const { error: updateError } = await supabase
+        .from("products")
+        .update({ stock_quantity: Math.max(0, newStock) })
+        .eq("id", item.product_id);
+
+      if (updateError) {
+        console.error(`فشل في تحديث مخزون المنتج ${item.product_id}:`, updateError);
+        // لا نرمي خطأ هنا لأن الفاتورة تم إنشاؤها بالفعل
+      }
     }
 
     return invoice;

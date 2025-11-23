@@ -49,6 +49,8 @@ export default function ProductsPage() {
     warranty_text: "",
     unit_price_iqd: 0,
     unit_price_usd: 0,
+    stock_quantity: 0,
+    low_stock_threshold: 0,
   });
 
   useEffect(() => {
@@ -99,6 +101,8 @@ export default function ProductsPage() {
       warranty_text: product.warranty_text || "",
       unit_price_iqd: product.unit_price_iqd || 0,
       unit_price_usd: product.unit_price_usd || 0,
+      stock_quantity: product.stock_quantity || 0,
+      low_stock_threshold: product.low_stock_threshold || 0,
     });
     setShowDialog(true);
   };
@@ -124,6 +128,8 @@ export default function ProductsPage() {
       warranty_text: "",
       unit_price_iqd: 0,
       unit_price_usd: 0,
+      stock_quantity: 0,
+      low_stock_threshold: 0,
     });
   };
 
@@ -240,6 +246,40 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
+                {/* حقول المخزون الجديدة */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="stock_quantity">الكمية في المخزون</Label>
+                    <Input
+                      id="stock_quantity"
+                      type="number"
+                      min="0"
+                      value={formData.stock_quantity}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          stock_quantity: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="low_stock_threshold">حد التنبيه الأدنى</Label>
+                    <Input
+                      id="low_stock_threshold"
+                      type="number"
+                      min="0"
+                      value={formData.low_stock_threshold}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          low_stock_threshold: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="warranty">Warranty Text</Label>
                   <Textarea
@@ -286,6 +326,7 @@ export default function ProductsPage() {
                   <TableHead>Model</TableHead>
                   <TableHead>Price (IQD)</TableHead>
                   <TableHead>Price (USD)</TableHead>
+                  <TableHead>Stock</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -304,6 +345,15 @@ export default function ProductsPage() {
                       {product.unit_price_usd
                         ? `$${product.unit_price_usd.toFixed(2)}`
                         : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`font-semibold ${
+                        (product.stock_quantity || 0) <= (product.low_stock_threshold || 0)
+                          ? 'text-red-600'
+                          : 'text-green-600'
+                      }`}>
+                        {product.stock_quantity || 0}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
