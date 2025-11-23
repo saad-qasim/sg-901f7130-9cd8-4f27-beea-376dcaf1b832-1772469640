@@ -5,14 +5,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BarChart3, TrendingUp, DollarSign, FileText, Printer, Package } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BarChart3, TrendingUp, DollarSign, FileText, Printer, Package, CheckCircle, XCircle } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+
+interface Invoice {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  total: number;
+  payment_status: string;
+  customers: {
+    name: string;
+  } | null;
+  brands: {
+    name: string;
+  } | null;
+}
 
 interface ReportStats {
   totalInvoices: number;
   totalSales: number;
   totalProductsSold: number;
+  paidInvoicesCount: number;
+  unpaidInvoicesCount: number;
   topProduct: {
     name: string;
     quantity: number;
@@ -25,8 +43,12 @@ export default function Reports() {
     totalInvoices: 0,
     totalSales: 0,
     totalProductsSold: 0,
+    paidInvoicesCount: 0,
+    unpaidInvoicesCount: 0,
     topProduct: null,
   });
+
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   // القيم الافتراضية للفلاتر: اليوم - 30 يوم إلى اليوم
   const getDefaultStartDate = () => {
@@ -41,6 +63,7 @@ export default function Reports() {
 
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(getDefaultEndDate());
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
 
   useEffect(() => {
     loadReportData();
@@ -50,21 +73,60 @@ export default function Reports() {
     try {
       setLoading(true);
 
-      // 1. جلب الفواتير في الفترة المحددة
-      const { data: invoicesData, error: invoicesError } = await supabase
+      // 1. بناء استعلام الفواتير مع الفلاتر
+      let invoicesQuery = supabase
         .from("invoices")
-        .select("id, invoice_date, total")
+        .select(`
+          id,
+          invoice_number,
+          invoice_date,
+          total,
+          payment_status,
+          customers (
+            name
+          ),
+          brands (
+            name
+          )
+        `)
         .gte("invoice_date", startDate)
         .lte("invoice_date", endDate);
+
+      // إضافة فلتر حالة الدفع إذا كان محددًا
+      if (statusFilter === "paid") {
+        invoicesQuery = invoicesQuery.eq("payment_status", "paid");
+      } else if (statusFilter === "unpaid") {
+        invoicesQuery = invoicesQuery.eq("payment_status", "unpaid");
+      }
+
+      invoicesQuery = invoicesQuery.order("invoice_date", { ascending: false });
+
+      const { data: invoicesData, error: invoicesError } = await invoicesQuery;
 
       if (invoicesError) {
         console.error("Error loading invoices:", invoicesError);
         throw invoicesError;
       }
 
-      // 2. جلب عناصر الفواتير مع المنتجات في الفترة المحددة
-      // نحتاج لجلب invoice_items مع الانضمام إلى invoices للتصفية بالتاريخ
-      const { data: itemsData, error: itemsError } = await supabase
+      setInvoices(invoicesData || []);
+
+      // 2. حساب إحصائيات الفواتير المدفوعة وغير المدفوعة (بدون فلتر الحالة)
+      const { data: allInvoicesForStats, error: allInvoicesError } = await supabase
+        .from("invoices")
+        .select("id, payment_status")
+        .gte("invoice_date", startDate)
+        .lte("invoice_date", endDate);
+
+      if (allInvoicesError) {
+        console.error("Error loading all invoices for stats:", allInvoicesError);
+        throw allInvoicesError;
+      }
+
+      const paidInvoicesCount = allInvoicesForStats?.filter(inv => inv.payment_status === "paid").length || 0;
+      const unpaidInvoicesCount = allInvoicesForStats?.filter(inv => inv.payment_status === "unpaid").length || 0;
+
+      // 3. جلب عناصر الفواتير مع المنتجات (باستخدام نفس الفلاتر)
+      let itemsQuery = supabase
         .from("invoice_items")
         .select(`
           id,
@@ -73,7 +135,8 @@ export default function Reports() {
           quantity,
           total,
           invoices!inner (
-            invoice_date
+            invoice_date,
+            payment_status
           ),
           products (
             name
@@ -82,17 +145,26 @@ export default function Reports() {
         .gte("invoices.invoice_date", startDate)
         .lte("invoices.invoice_date", endDate);
 
+      // إضافة فلتر حالة الدفع للعناصر
+      if (statusFilter === "paid") {
+        itemsQuery = itemsQuery.eq("invoices.payment_status", "paid");
+      } else if (statusFilter === "unpaid") {
+        itemsQuery = itemsQuery.eq("invoices.payment_status", "unpaid");
+      }
+
+      const { data: itemsData, error: itemsError } = await itemsQuery;
+
       if (itemsError) {
         console.error("Error loading items:", itemsError);
         throw itemsError;
       }
 
-      // 3. حساب الإحصائيات
+      // 4. حساب الإحصائيات بناءً على البيانات المفلترة
       const totalInvoices = invoicesData?.length || 0;
       const totalSales = invoicesData?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
       const totalProductsSold = itemsData?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 
-      // 4. حساب أفضل منتج (الأعلى مبيعًا)
+      // 5. حساب أفضل منتج (الأعلى مبيعًا)
       const productSales: { [key: string]: { name: string; quantity: number } } = {};
 
       itemsData?.forEach((item) => {
@@ -118,6 +190,8 @@ export default function Reports() {
         totalInvoices,
         totalSales,
         totalProductsSold,
+        paidInvoicesCount,
+        unpaidInvoicesCount,
         topProduct,
       });
     } catch (error) {
@@ -178,11 +252,11 @@ export default function Reports() {
                 <CardHeader>
                   <CardTitle className="text-right">تصفية البيانات</CardTitle>
                   <CardDescription className="text-right">
-                    اختر الفترة الزمنية لعرض الإحصائيات
+                    اختر الفترة الزمنية وحالة الدفع لعرض الإحصائيات
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
                       <Label htmlFor="start-date" className="text-right block mb-2">
                         من تاريخ
@@ -205,6 +279,24 @@ export default function Reports() {
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="status-filter" className="text-right block mb-2">
+                        حالة الفواتير
+                      </Label>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={(value: "all" | "paid" | "unpaid") => setStatusFilter(value)}
+                      >
+                        <SelectTrigger id="status-filter">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">الكل</SelectItem>
+                          <SelectItem value="paid">مدفوعة فقط</SelectItem>
+                          <SelectItem value="unpaid">غير مدفوعة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="flex gap-2">
                       <Button onClick={handleRefresh} disabled={loading} className="flex-1">
                         {loading ? "جاري التحميل..." : "تحديث الإحصائيات"}
@@ -226,6 +318,9 @@ export default function Reports() {
               {/* Date Range Display (for print) */}
               <div className="print-only mb-4 text-center text-sm text-muted-foreground">
                 <p>الفترة: من {formatDate(startDate)} إلى {formatDate(endDate)}</p>
+                <p>
+                  حالة الفواتير: {statusFilter === "all" ? "الكل" : statusFilter === "paid" ? "مدفوعة فقط" : "غير مدفوعة"}
+                </p>
               </div>
 
               {/* Stats Cards */}
@@ -251,7 +346,9 @@ export default function Reports() {
                           {stats.totalInvoices}
                         </div>
                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                          فاتورة في الفترة المحددة
+                          {statusFilter === "all" && "فاتورة في الفترة"}
+                          {statusFilter === "paid" && "فاتورة مدفوعة"}
+                          {statusFilter === "unpaid" && "فاتورة غير مدفوعة"}
                         </p>
                       </CardContent>
                     </Card>
@@ -271,11 +368,56 @@ export default function Reports() {
                           {formatCurrency(stats.totalSales)}
                         </div>
                         <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                          مجموع قيمة الفواتير
+                          {statusFilter === "all" && "مجموع جميع الفواتير"}
+                          {statusFilter === "paid" && "مجموع الفواتير المدفوعة"}
+                          {statusFilter === "unpaid" && "مجموع الفواتير غير المدفوعة"}
                         </p>
                       </CardContent>
                     </Card>
 
+                    {/* Paid Invoices Count */}
+                    <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-2 border-emerald-200 dark:border-emerald-800">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                            الفواتير المدفوعة
+                          </CardTitle>
+                          <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">
+                          {stats.paidInvoicesCount}
+                        </div>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">
+                          فاتورة مدفوعة
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Unpaid Invoices Count */}
+                    <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/30 border-2 border-red-200 dark:border-red-800">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
+                            الفواتير غير المدفوعة
+                          </CardTitle>
+                          <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                          {stats.unpaidInvoicesCount}
+                        </div>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                          فاتورة غير مدفوعة
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Secondary Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     {/* Total Products Sold */}
                     <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-2 border-purple-200 dark:border-purple-800">
                       <CardHeader className="pb-3">
@@ -330,6 +472,60 @@ export default function Reports() {
                     </Card>
                   </div>
 
+                  {/* Invoices Table */}
+                  <Card className="border-2 mb-8">
+                    <CardHeader>
+                      <CardTitle className="text-2xl text-right">قائمة الفواتير</CardTitle>
+                      <CardDescription className="text-right">
+                        جميع الفواتير في الفترة المحددة
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {invoices.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          لا توجد فواتير في الفترة المحددة
+                        </div>
+                      ) : (
+                        <div className="border rounded-lg overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-right">رقم الفاتورة</TableHead>
+                                <TableHead className="text-right">التاريخ</TableHead>
+                                <TableHead className="text-right">العميل</TableHead>
+                                <TableHead className="text-right">العلامة التجارية</TableHead>
+                                <TableHead className="text-right">المبلغ</TableHead>
+                                <TableHead className="text-right">الحالة</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {invoices.map((invoice) => (
+                                <TableRow key={invoice.id}>
+                                  <TableCell className="font-medium">
+                                    {invoice.invoice_number}
+                                  </TableCell>
+                                  <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
+                                  <TableCell>{invoice.customers?.name || "---"}</TableCell>
+                                  <TableCell>{invoice.brands?.name || "---"}</TableCell>
+                                  <TableCell className="font-semibold">
+                                    {formatCurrency(invoice.total)}
+                                  </TableCell>
+                                  <TableCell>
+                                    {invoice.payment_status === "paid" ? (
+                                      <span className="text-green-600 font-medium">مدفوعة</span>
+                                    ) : (
+                                      <span className="text-red-600 font-medium">غير مدفوعة</span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
                   {/* Summary Card */}
                   <Card className="border-2">
                     <CardHeader>
@@ -347,15 +543,35 @@ export default function Reports() {
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-b pb-3">
-                          <span className="text-muted-foreground">عدد الفواتير:</span>
+                          <span className="text-muted-foreground">فلتر الحالة:</span>
+                          <span className="font-semibold">
+                            {statusFilter === "all" && "جميع الفواتير"}
+                            {statusFilter === "paid" && "الفواتير المدفوعة فقط"}
+                            {statusFilter === "unpaid" && "الفواتير غير المدفوعة فقط"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-muted-foreground">عدد الفواتير (مفلترة):</span>
                           <span className="font-semibold text-blue-600">
                             {stats.totalInvoices} فاتورة
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-b pb-3">
-                          <span className="text-muted-foreground">إجمالي المبيعات:</span>
+                          <span className="text-muted-foreground">إجمالي المبيعات (مفلترة):</span>
                           <span className="font-semibold text-green-600">
                             {formatCurrency(stats.totalSales)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-muted-foreground">الفواتير المدفوعة (كامل الفترة):</span>
+                          <span className="font-semibold text-emerald-600">
+                            {stats.paidInvoicesCount} فاتورة
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-muted-foreground">الفواتير غير المدفوعة (كامل الفترة):</span>
+                          <span className="font-semibold text-red-600">
+                            {stats.unpaidInvoicesCount} فاتورة
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-b pb-3">
