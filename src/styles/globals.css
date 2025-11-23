@@ -1,38 +1,88 @@
-/* ======================================
-   Tailwind Base
-====================================== */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ======================================
-   Utilities
-====================================== */
 @layer utilities {
     .text-balance {
         text-wrap: balance;
     }
 }
 
-/* ======================================
-   Root Variables
-====================================== */
 @layer base {
     :root {
         --radius: 0.55rem;
         --background: 0 0% 100%;
         --foreground: 330 0% 0.3%;
-        --border: 0 0% 92.2%;
-        --input: 0 0% 92.2%;
+        --card: 0 0% 100%;
+        --card-foreground: 330 0% 0.3%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 330 0% 0.3%;
         --primary: 0 0% 4.5%;
         --primary-foreground: 0 0% 97.5%;
+        --secondary: 0 0% 97.3%;
+        --secondary-foreground: 0 0% 4.5%;
+        --muted: 0 0% 97.3%;
+        --muted-foreground: 0 0% 55.7%;
+        --accent: 0 0% 97.3%;
+        --accent-foreground: 0 0% 4.5%;
+        --destructive: 359.9132 100.2494% 67.8807%;
+        --destructive-foreground: 0 0% 0%;
+        --border: 0 0% 92.2%;
+        --input: 0 0% 92.2%;
+        --ring: 0 0% 70.8%;
+        --chart-1: 41.1 71.2% 54.4%;
+        --chart-2: 184.7 32.4% 48.6%;
+        --chart-3: 227.4 15.2% 33.3%;
+        --chart-4: 84.4 74.8% 75.7%;
+        --chart-5: 70.1 74.3% 70.5%;
+        --sidebar: 0 0% 97.5%;
+        --sidebar-foreground: 330 0% 0.3%;
+        --sidebar-primary: 0 0% 4.5%;
+        --sidebar-primary-foreground: 0 0% 97.5%;
+        --sidebar-accent: 0 0% 97.3%;
+        --sidebar-accent-foreground: 0 0% 4.5%;
+        --sidebar-border: 0 0% 92.2%;
+        --sidebar-ring: 0 0% 70.8%;
     }
 
     .dark {
+        --radius: 0.55rem;
         --background: 330 0% 0.3%;
         --foreground: 0 0% 97.5%;
+        --card: 0 0% 4.5%;
+        --card-foreground: 0 0% 97.5%;
+        --popover: 0 0% 8.6%;
+        --popover-foreground: 0 0% 97.5%;
+        --primary: 0 0% 92.2%;
+        --primary-foreground: 0 0% 4.5%;
+        --secondary: 0 0% 8.6%;
+        --secondary-foreground: 0 0% 97.5%;
+        --muted: 0 0% 8.6%;
+        --muted-foreground: 0 0% 70.8%;
+        --accent: 0 0% 21.2%;
+        --accent-foreground: 0 0% 97.5%;
+        --destructive: 359.9132 100.2494% 67.8807%;
+        --destructive-foreground: 0 0% 0%;
+        --border: 0 0% 100% / 15%;
+        --input: 0 0% 100% / 15%;
+        --ring: 0 0% 55.7%;
+        --chart-1: 264.4 77.2% 41.9%;
+        --chart-2: 162.5 46.7% 57.3%;
+        --chart-3: 70.1 74.3% 70.5%;
+        --chart-4: 303.9 75.8% 51.6%;
+        --chart-5: 16.4 84.7% 55.4%;
+        --sidebar: 0 0% 4.5%;
+        --sidebar-foreground: 0 0% 97.5%;
+        --sidebar-primary: 264.4 77.2% 41.9%;
+        --sidebar-primary-foreground: 0 0% 97.5%;
+        --sidebar-accent: 0 0% 8.6%;
+        --sidebar-accent-foreground: 0 0% 97.5%;
+        --sidebar-border: 0 0% 100% / 10%;
+        --sidebar-ring: 0 0% 43.9%;
     }
+}
 
+@layer base {
     * {
         @apply border-border;
     }
@@ -42,13 +92,20 @@
     }
 }
 
-/* ======================================
-   Invoice A4 Container — NORMAL VIEW
-====================================== */
+@layer components {
+    .container {
+        @apply mx-auto px-4 md:px-6 lg:px-8 max-w-7xl w-full;
+    }
+}
+
+/* ============================
+   Invoice A4 styles فقط
+   ============================ */
+
+/* عرض الفاتورة على الشاشة */
 .invoice-a4 {
     position: relative;
     width: 200mm;
-    /* مناسب للطباعة */
     margin: 0 auto;
     padding: 14mm 16mm;
     background: white;
@@ -57,7 +114,6 @@
     font-size: 15px;
     line-height: 1.45;
 
-    /* تحسين للطباعة الرقمية */
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
 }
@@ -67,9 +123,12 @@
     max-height: 100px;
 }
 
-/* ======================================
-   Print Styles
-====================================== */
+/* إخفاء العناصر التي لا نريد طباعتها */
+.no-print {
+    display: none;
+}
+
+/* أنماط الطباعة */
 @media print {
 
     html,
@@ -82,12 +141,10 @@
     .invoice-a4 {
         width: 200mm !important;
         max-height: 280mm !important;
-        /* يسمح بمحتوى واضح بدون صفحة ثانية */
         margin: 0 auto !important;
         padding: 10mm 12mm !important;
-        overflow: visible !important;
         box-sizing: border-box;
-
+        overflow: visible !important;
         font-size: 14px !important;
         line-height: 1.35 !important;
     }
@@ -97,12 +154,10 @@
         max-height: 90px !important;
     }
 
-    /* إخفاء الأزرار */
     .no-print {
         display: none !important;
     }
 
-    /* تنسيق عناصر النص */
     .invoice-a4 h1 {
         font-size: 22px !important;
     }
@@ -122,7 +177,6 @@
         line-height: 1.35 !important;
     }
 
-    /* حدود الصفحة عند الطباعة */
     @page {
         size: A4 portrait;
         margin: 5mm !important;
