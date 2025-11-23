@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -143,11 +145,26 @@
     background: white;
     box-sizing: border-box;
 
-    font-size: 15px;
-    line-height: 1.45;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
 
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+}
+
+.invoice-a4 h1,
+.invoice-a4 h2,
+.invoice-a4 h3 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 700;
+}
+
+.invoice-a4 p,
+.invoice-a4 div,
+.invoice-a4 td,
+.invoice-a4 th {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .invoice-a4 img {
@@ -177,8 +194,9 @@
         padding: 10mm 12mm !important;
         box-sizing: border-box;
         overflow: visible !important;
-        font-size: 14px !important;
-        line-height: 1.35 !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        font-size: 15px !important;
+        line-height: 1.4 !important;
     }
 
     .invoice-a4 img {
@@ -191,22 +209,22 @@
     }
 
     .invoice-a4 h1 {
-        font-size: 22px !important;
+        font-size: 24px !important;
     }
 
     .invoice-a4 h2 {
-        font-size: 18px !important;
+        font-size: 20px !important;
     }
 
     .invoice-a4 h3 {
-        font-size: 14px !important;
+        font-size: 15px !important;
     }
 
     .invoice-a4 p,
     .invoice-a4 td,
     .invoice-a4 th {
-        font-size: 12px !important;
-        line-height: 1.35 !important;
+        font-size: 13px !important;
+        line-height: 1.4 !important;
     }
 
     @page {
