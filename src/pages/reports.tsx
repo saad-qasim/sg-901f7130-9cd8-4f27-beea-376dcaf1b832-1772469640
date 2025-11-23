@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart3, TrendingUp, DollarSign, FileText, Printer, Package, CheckCircle, XCircle } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, FileText, Printer, Package, CheckCircle, XCircle, Banknote, AlertCircle } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -31,6 +31,8 @@ interface ReportStats {
   totalProductsSold: number;
   paidInvoicesCount: number;
   unpaidInvoicesCount: number;
+  paidAmount: number;
+  unpaidAmount: number;
   topProduct: {
     name: string;
     quantity: number;
@@ -45,6 +47,8 @@ export default function Reports() {
     totalProductsSold: 0,
     paidInvoicesCount: 0,
     unpaidInvoicesCount: 0,
+    paidAmount: 0,
+    unpaidAmount: 0,
     topProduct: null,
   });
 
@@ -73,8 +77,8 @@ export default function Reports() {
     try {
       setLoading(true);
 
-      // 1. بناء استعلام الفواتير مع الفلاتر
-      let invoicesQuery = supabase
+      // 1. جلب جميع الفواتير ضمن الفترة بدون فلتر الحالة (للحسابات الشاملة)
+      const { data: allInvoicesData, error: allInvoicesError } = await supabase
         .from("invoices")
         .select(`
           id,
@@ -90,42 +94,37 @@ export default function Reports() {
           )
         `)
         .gte("invoice_date", startDate)
-        .lte("invoice_date", endDate);
-
-      // إضافة فلتر حالة الدفع إذا كان محددًا
-      if (statusFilter === "paid") {
-        invoicesQuery = invoicesQuery.eq("payment_status", "paid");
-      } else if (statusFilter === "unpaid") {
-        invoicesQuery = invoicesQuery.eq("payment_status", "unpaid");
-      }
-
-      invoicesQuery = invoicesQuery.order("invoice_date", { ascending: false });
-
-      const { data: invoicesData, error: invoicesError } = await invoicesQuery;
-
-      if (invoicesError) {
-        console.error("Error loading invoices:", invoicesError);
-        throw invoicesError;
-      }
-
-      setInvoices(invoicesData || []);
-
-      // 2. حساب إحصائيات الفواتير المدفوعة وغير المدفوعة (بدون فلتر الحالة)
-      const { data: allInvoicesForStats, error: allInvoicesError } = await supabase
-        .from("invoices")
-        .select("id, payment_status")
-        .gte("invoice_date", startDate)
-        .lte("invoice_date", endDate);
+        .lte("invoice_date", endDate)
+        .order("invoice_date", { ascending: false });
 
       if (allInvoicesError) {
-        console.error("Error loading all invoices for stats:", allInvoicesError);
+        console.error("Error loading all invoices:", allInvoicesError);
         throw allInvoicesError;
       }
 
-      const paidInvoicesCount = allInvoicesForStats?.filter(inv => inv.payment_status === "paid").length || 0;
-      const unpaidInvoicesCount = allInvoicesForStats?.filter(inv => inv.payment_status === "unpaid").length || 0;
+      // 2. حساب إجمالي المبالغ المدفوعة وغير المدفوعة من جميع الفواتير
+      const paidAmount = (allInvoicesData || [])
+        .filter(inv => inv.payment_status === "paid")
+        .reduce((sum, inv) => sum + (inv.total ?? 0), 0);
 
-      // 3. جلب عناصر الفواتير مع المنتجات (باستخدام نفس الفلاتر)
+      const unpaidAmount = (allInvoicesData || [])
+        .filter(inv => inv.payment_status === "unpaid")
+        .reduce((sum, inv) => sum + (inv.total ?? 0), 0);
+
+      const paidInvoicesCount = (allInvoicesData || []).filter(inv => inv.payment_status === "paid").length;
+      const unpaidInvoicesCount = (allInvoicesData || []).filter(inv => inv.payment_status === "unpaid").length;
+
+      // 3. تطبيق فلتر الحالة للعرض في الجدول وإحصائيات محددة
+      let filteredInvoices = allInvoicesData || [];
+      if (statusFilter === "paid") {
+        filteredInvoices = filteredInvoices.filter(inv => inv.payment_status === "paid");
+      } else if (statusFilter === "unpaid") {
+        filteredInvoices = filteredInvoices.filter(inv => inv.payment_status === "unpaid");
+      }
+
+      setInvoices(filteredInvoices);
+
+      // 4. جلب عناصر الفواتير مع المنتجات (باستخدام نفس الفلاتر)
       let itemsQuery = supabase
         .from("invoice_items")
         .select(`
@@ -159,12 +158,12 @@ export default function Reports() {
         throw itemsError;
       }
 
-      // 4. حساب الإحصائيات بناءً على البيانات المفلترة
-      const totalInvoices = invoicesData?.length || 0;
-      const totalSales = invoicesData?.reduce((sum, inv) => sum + (inv.total || 0), 0) || 0;
+      // 5. حساب الإحصائيات بناءً على البيانات المفلترة
+      const totalInvoices = filteredInvoices.length;
+      const totalSales = filteredInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
       const totalProductsSold = itemsData?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
 
-      // 5. حساب أفضل منتج (الأعلى مبيعًا)
+      // 6. حساب أفضل منتج (الأعلى مبيعًا)
       const productSales: { [key: string]: { name: string; quantity: number } } = {};
 
       itemsData?.forEach((item) => {
@@ -192,6 +191,8 @@ export default function Reports() {
         totalProductsSold,
         paidInvoicesCount,
         unpaidInvoicesCount,
+        paidAmount,
+        unpaidAmount,
         topProduct,
       });
     } catch (error) {
@@ -330,6 +331,7 @@ export default function Reports() {
                 </div>
               ) : (
                 <>
+                  {/* Primary Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {/* Total Invoices */}
                     <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-2 border-blue-200 dark:border-blue-800">
@@ -416,7 +418,50 @@ export default function Reports() {
                     </Card>
                   </div>
 
-                  {/* Secondary Stats Cards */}
+                  {/* Amount Stats Row - NEW CARDS */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    {/* Total Paid Amount */}
+                    <Card className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/30 border-2 border-teal-200 dark:border-teal-800">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-teal-700 dark:text-teal-300">
+                            إجمالي المدفوع
+                          </CardTitle>
+                          <Banknote className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-teal-900 dark:text-teal-100">
+                          {formatCurrency(stats.paidAmount)}
+                        </div>
+                        <p className="text-xs text-teal-600 dark:text-teal-400 mt-2">
+                          مجموع المبالغ المدفوعة في الفترة
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Total Unpaid Amount */}
+                    <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/30 border-2 border-amber-200 dark:border-amber-800">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                            إجمالي غير المدفوع
+                          </CardTitle>
+                          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                          {formatCurrency(stats.unpaidAmount)}
+                        </div>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                          المبالغ المستحقة في الفترة
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Secondary Stats Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     {/* Total Products Sold */}
                     <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-2 border-purple-200 dark:border-purple-800">
@@ -572,6 +617,18 @@ export default function Reports() {
                           <span className="text-muted-foreground">الفواتير غير المدفوعة (كامل الفترة):</span>
                           <span className="font-semibold text-red-600">
                             {stats.unpaidInvoicesCount} فاتورة
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-muted-foreground">إجمالي المبالغ المدفوعة:</span>
+                          <span className="font-semibold text-teal-600">
+                            {formatCurrency(stats.paidAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <span className="text-muted-foreground">إجمالي المبالغ غير المدفوعة:</span>
+                          <span className="font-semibold text-amber-600">
+                            {formatCurrency(stats.unpaidAmount)}
                           </span>
                         </div>
                         <div className="flex justify-between items-center border-b pb-3">
