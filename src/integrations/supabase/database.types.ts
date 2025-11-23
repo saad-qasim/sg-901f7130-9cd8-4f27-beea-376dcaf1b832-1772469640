@@ -46,6 +46,8 @@ export type Database = {
           created_at: string | null
           default_currency: string
           id: string
+          invoice_prefix: string
+          invoice_start_number: number
         }
         Insert: {
           company_info_text?: string | null
@@ -53,6 +55,8 @@ export type Database = {
           created_at?: string | null
           default_currency?: string
           id?: string
+          invoice_prefix?: string
+          invoice_start_number?: number
         }
         Update: {
           company_info_text?: string | null
@@ -60,6 +64,8 @@ export type Database = {
           created_at?: string | null
           default_currency?: string
           id?: string
+          invoice_prefix?: string
+          invoice_start_number?: number
         }
         Relationships: []
       }
