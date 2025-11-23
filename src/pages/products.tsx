@@ -47,7 +47,6 @@ export default function ProductsPage() {
     brand_id: "",
     name: "",
     description: "",
-    model_number: "",
     warranty_text: "",
     unit_price_iqd: 0,
     unit_price_usd: 0,
@@ -99,7 +98,6 @@ export default function ProductsPage() {
       brand_id: product.brand_id,
       name: product.name,
       description: product.description || "",
-      model_number: product.model_number || "",
       warranty_text: product.warranty_text || "",
       unit_price_iqd: product.unit_price_iqd || 0,
       unit_price_usd: product.unit_price_usd || 0,
@@ -126,7 +124,6 @@ export default function ProductsPage() {
       brand_id: "",
       name: "",
       description: "",
-      model_number: "",
       warranty_text: "",
       unit_price_iqd: 0,
       unit_price_usd: 0,
@@ -192,17 +189,6 @@ export default function ProductsPage() {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="model">Model Number</Label>
-                  <Input
-                    id="model"
-                    value={formData.model_number}
-                    onChange={(e) =>
-                      setFormData({ ...formData, model_number: e.target.value })
-                    }
                   />
                 </div>
 
@@ -333,7 +319,6 @@ export default function ProductsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Brand</TableHead>
-                  <TableHead>Model</TableHead>
                   <TableHead>Price (IQD)</TableHead>
                   <TableHead>Price (USD)</TableHead>
                   <TableHead>Stock</TableHead>
@@ -347,7 +332,6 @@ export default function ProductsPage() {
                       {product.name}
                     </TableCell>
                     <TableCell>{product.brands?.name || "—"}</TableCell>
-                    <TableCell>{product.model_number || "—"}</TableCell>
                     <TableCell>
                       {product.unit_price_iqd
                         ? product.unit_price_iqd.toLocaleString()

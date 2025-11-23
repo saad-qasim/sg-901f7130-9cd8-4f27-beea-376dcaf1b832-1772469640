@@ -192,7 +192,7 @@ export default function NewInvoicePage() {
     const newItem: InvoiceItemInsert = {
       product_id: product.id,
       product_name_snapshot: product.description || product.name,
-      serial_number: product.model_number,
+      serial_number: "",
       quantity: 1,
       unit_price: price,
       total: price,
@@ -761,7 +761,7 @@ export default function NewInvoicePage() {
                         <TableCell>
                           <div className="font-medium">{p.name}</div>
                           <div className="text-sm text-muted-foreground">
-                            {p.model_number} - {p.description}
+                            {p.description}
                           </div>
                         </TableCell>
                         <TableCell>{p.unit_price_iqd?.toLocaleString()}</TableCell>
