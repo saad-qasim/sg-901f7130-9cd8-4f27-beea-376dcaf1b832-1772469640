@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Trash2, Plus } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Database } from "@/integrations/supabase/types";
 
@@ -423,7 +424,10 @@ export default function EditInvoicePage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <BackButton />
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <HomeButton />
+        </div>
         <h1 className="text-3xl font-bold mb-6 mt-4">تعديل الفاتورة</h1>
 
         <div className="space-y-6">

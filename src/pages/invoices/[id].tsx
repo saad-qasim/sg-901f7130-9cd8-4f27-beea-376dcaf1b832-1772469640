@@ -14,6 +14,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Printer, Download, Edit, CheckCircle2, DollarSign } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function InvoiceDetailPage() {
@@ -132,8 +133,11 @@ export default function InvoiceDetailPage() {
       <div className="min-h-screen bg-gray-50 py-8">
         {/* Action Buttons - Hidden when printing */}
         <div className="container mx-auto px-4 mb-6 no-print">
-          <BackButton />
-          
+          <div className="flex items-center gap-3 mb-4">
+            <BackButton />
+            <HomeButton />
+          </div>
+
           {/* Payment Status Display */}
           <div className="flex justify-between items-center mt-4 mb-4">
             <div className="flex items-center gap-3">

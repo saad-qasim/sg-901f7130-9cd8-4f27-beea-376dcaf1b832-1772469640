@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
@@ -167,7 +168,10 @@ export default function BrandsPage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4">
-        <BackButton />
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <HomeButton />
+        </div>
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Brands</h1>
           <Dialog open={dialogOpen} onOpenChange={(open) => {

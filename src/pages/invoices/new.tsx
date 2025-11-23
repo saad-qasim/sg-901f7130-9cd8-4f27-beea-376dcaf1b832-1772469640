@@ -32,6 +32,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Search } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -387,7 +388,10 @@ export default function NewInvoicePage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4">
-        <BackButton />
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <HomeButton />
+        </div>
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">إنشاء فاتورة جديدة</h1>
           <Button onClick={handleCreateInvoice} disabled={saving}>

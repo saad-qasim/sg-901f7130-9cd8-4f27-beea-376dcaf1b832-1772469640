@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart3, TrendingUp, DollarSign, FileText, Printer, Package, CheckCircle, XCircle, Banknote, AlertCircle } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Invoice {
@@ -233,8 +234,9 @@ export default function Reports() {
 
         <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
           <div className="container mx-auto px-4 py-8">
-            <div className="no-print mb-6">
+            <div className="no-print mb-6 flex items-center gap-3">
               <BackButton />
+              <HomeButton />
             </div>
             
             <div className="max-w-6xl mx-auto">

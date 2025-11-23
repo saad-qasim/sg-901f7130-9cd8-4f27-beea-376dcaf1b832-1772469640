@@ -30,6 +30,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 type CompanySettings = Database["public"]["Tables"]["company_settings"]["Row"];
@@ -174,7 +175,10 @@ export default function AdminCompaniesPage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <BackButton />
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <HomeButton />
+        </div>
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Company Profiles</h1>
           <Button onClick={() => handleOpenDialog()}>
