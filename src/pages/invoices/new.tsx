@@ -83,28 +83,52 @@ export default function NewInvoicePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch customers with error handling
+        // Check authentication status first
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        console.log("🔐 Auth session:", session ? "✅ Logged in" : "❌ Not logged in", session?.user?.email);
+        
+        if (authError) {
+          console.error("❌ Auth error:", authError);
+        }
+
+        // Fetch customers with detailed error handling
+        console.log("📞 Fetching customers...");
         const { data: customersData, error: customersError } = await supabase
           .from("customers")
           .select("*")
           .order("name", { ascending: true });
 
         if (customersError) {
-          console.error("Error fetching customers:", customersError);
+          console.error("❌ Error fetching customers:", customersError);
+          console.error("Error details:", {
+            message: customersError.message,
+            details: customersError.details,
+            hint: customersError.hint,
+            code: customersError.code
+          });
         } else {
-          console.log("Customers fetched:", customersData?.length || 0, "items", customersData);
+          console.log("✅ Customers fetched:", customersData?.length || 0, "items");
+          console.log("Sample customer data:", customersData?.[0]);
         }
 
-        // Fetch brands with error handling
+        // Fetch brands with detailed error handling
+        console.log("🏷️ Fetching brands...");
         const { data: brandsData, error: brandsError } = await supabase
           .from("brands")
           .select("*")
           .order("name", { ascending: true });
 
         if (brandsError) {
-          console.error("Error fetching brands:", brandsError);
+          console.error("❌ Error fetching brands:", brandsError);
+          console.error("Error details:", {
+            message: brandsError.message,
+            details: brandsError.details,
+            hint: brandsError.hint,
+            code: brandsError.code
+          });
         } else {
-          console.log("Brands fetched:", brandsData?.length || 0, "items", brandsData);
+          console.log("✅ Brands fetched:", brandsData?.length || 0, "items");
+          console.log("Sample brand data:", brandsData?.[0]);
         }
 
         const [productsData, nextInvoiceNum, settingsData] = await Promise.all([
@@ -121,10 +145,14 @@ export default function NewInvoicePage() {
         setInvoiceNumber(nextInvoiceNum.toString());
         setCompanySettings(settingsData);
 
-        // Debug log final state
-        console.log("Final state set - Customers:", customersData?.length || 0, "Brands:", brandsData?.length || 0);
+        // Final state verification
+        console.log("📊 Final state:", {
+          customersCount: customersData?.length || 0,
+          brandsCount: brandsData?.length || 0,
+          productsCount: productsData?.length || 0
+        });
       } catch (error) {
-        console.error("Error fetching initial data:", error);
+        console.error("💥 Unexpected error in fetchData:", error);
       }
     };
     fetchData();
