@@ -108,8 +108,8 @@ export default function SearchSerialPage() {
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <div className="flex items-center gap-3 mb-4">
-          <BackButton />
           <HomeButton />
+          <BackButton />
         </div>
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Serial Number Search</h1>

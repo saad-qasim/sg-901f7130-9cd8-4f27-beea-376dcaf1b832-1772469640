@@ -134,8 +134,8 @@ export default function InvoiceDetailPage() {
         {/* Action Buttons - Hidden when printing */}
         <div className="container mx-auto px-4 mb-6 no-print">
           <div className="flex items-center gap-3 mb-4">
-            <BackButton />
             <HomeButton />
+            <BackButton />
           </div>
 
           {/* Payment Status Display */}

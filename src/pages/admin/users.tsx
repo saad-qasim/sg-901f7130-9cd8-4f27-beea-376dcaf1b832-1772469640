@@ -265,8 +265,8 @@ export default function AdminUsersPage() {
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="flex items-center gap-3 mb-4">
-          <BackButton />
           <HomeButton />
+          <BackButton />
         </div>
         
         <div className="flex justify-between items-center mb-8">

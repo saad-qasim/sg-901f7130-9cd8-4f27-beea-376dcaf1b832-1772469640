@@ -425,8 +425,8 @@ export default function EditInvoicePage() {
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <div className="flex items-center gap-3 mb-4">
-          <BackButton />
           <HomeButton />
+          <BackButton />
         </div>
         <h1 className="text-3xl font-bold mb-6 mt-4">تعديل الفاتورة</h1>
 

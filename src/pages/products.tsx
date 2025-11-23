@@ -137,8 +137,8 @@ export default function ProductsPage() {
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center gap-3 mb-4">
-          <BackButton />
           <HomeButton />
+          <BackButton />
         </div>
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Products</h1>
