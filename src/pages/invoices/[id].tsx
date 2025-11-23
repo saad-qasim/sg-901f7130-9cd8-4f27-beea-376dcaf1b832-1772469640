@@ -195,11 +195,7 @@ export default function InvoiceDetailPage() {
         <div id="invoice-content" className="invoice-a4 relative">
           {/* PAID Stamp - Only visible when invoice is paid */}
           {isPaid && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
-              <div className="border-8 border-green-500 rounded-lg px-8 py-4 rotate-[-15deg] opacity-30">
-                <span className="text-7xl font-black text-green-500">PAID</span>
-              </div>
-            </div>
+            <div className="paid-stamp">PAID</div>
           )}
 
           {/* Header with Brand Logo */}
