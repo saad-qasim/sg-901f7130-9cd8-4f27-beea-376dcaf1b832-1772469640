@@ -30,6 +30,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Edit, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
   AlertDialog,
@@ -262,8 +263,11 @@ export default function AdminUsersPage() {
 
   return (
     <ProtectedRoute>
-      <div className="container mx-auto py-8 px-4">
-        <BackButton />
+      <div className="container mx-auto py-8 px-4 max-w-7xl">
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <HomeButton />
+        </div>
         
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">إدارة المستخدمين</h1>

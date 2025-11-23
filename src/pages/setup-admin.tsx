@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import HomeButton from "@/components/HomeButton";
 
 export default function SetupAdminPage() {
   const [email, setEmail] = useState("");
@@ -61,7 +62,10 @@ export default function SetupAdminPage() {
       <Head>
         <title>إعداد مستخدم Admin - Invoice PRO</title>
       </Head>
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
+        <div className="absolute top-4 right-4">
+          <HomeButton />
+        </div>
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-3xl font-bold">⚙️ إعداد أول مستخدم</CardTitle>

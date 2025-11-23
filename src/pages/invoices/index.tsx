@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Eye, Search, Trash2, Edit } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
@@ -171,7 +172,10 @@ export default function InvoicesListPage() {
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-8 px-4">
-        <BackButton />
+        <div className="flex items-center gap-3 mb-4">
+          <BackButton />
+          <HomeButton />
+        </div>
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Invoices</h1>
           <Button
