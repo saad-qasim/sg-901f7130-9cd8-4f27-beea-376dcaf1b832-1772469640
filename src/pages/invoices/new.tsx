@@ -40,6 +40,7 @@ import { supabase } from "@/lib/supabaseClient";
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
+type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -52,7 +53,12 @@ export default function NewInvoicePage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
-  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
+  const [newCustomer, setNewCustomer] = useState<CustomerInsert>({
+    name: "",
+    phone: "",
+    email: "",
+    address: ""
+  });
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<string>("");
@@ -171,17 +177,33 @@ export default function NewInvoicePage() {
     setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
   };
 
-  const handleSaveNewCustomer = async () => {
+  const handleSaveNewCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newCustomer.name) {
       alert("Please enter customer name");
       return;
     }
     try {
       const createdCustomer = await customerService.createCustomer(newCustomer);
-      setCustomers([...customers, createdCustomer]);
+      
+      // Refresh customers list
+      const { data: customersData } = await supabase
+        .from("customers")
+        .select("*")
+        .order("name", { ascending: true });
+      setCustomers(customersData || []);
+      
+      // Auto-select the newly created customer
       setSelectedCustomerId(createdCustomer.id);
+      
+      // Close dialog and reset form
       setShowNewCustomerDialog(false);
-      setNewCustomer({ name: "", phone: "" });
+      setNewCustomer({
+        name: "",
+        phone: "",
+        email: "",
+        address: ""
+      });
     } catch (error) {
       console.error("Error creating customer:", error);
       alert("Failed to create customer");
@@ -507,42 +529,67 @@ export default function NewInvoicePage() {
           open={showNewCustomerDialog}
           onOpenChange={setShowNewCustomerDialog}
         >
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>إضافة عميل جديد</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <form onSubmit={handleSaveNewCustomer} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="new-customer-name">اسم العميل</Label>
+                <Label htmlFor="new-customer-name">اسم العميل *</Label>
                 <Input
                   id="new-customer-name"
                   value={newCustomer.name}
                   onChange={(e) =>
                     setNewCustomer({ ...newCustomer, name: e.target.value })
                   }
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-customer-phone">رقم الهاتف</Label>
                 <Input
                   id="new-customer-phone"
-                  value={newCustomer.phone}
+                  value={newCustomer.phone || ""}
                   onChange={(e) =>
                     setNewCustomer({ ...newCustomer, phone: e.target.value })
                   }
                   dir="ltr"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-customer-email">البريد الإلكتروني</Label>
+                <Input
+                  id="new-customer-email"
+                  type="email"
+                  value={newCustomer.email || ""}
+                  onChange={(e) =>
+                    setNewCustomer({ ...newCustomer, email: e.target.value })
+                  }
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-customer-address">العنوان</Label>
+                <Textarea
+                  id="new-customer-address"
+                  value={newCustomer.address || ""}
+                  onChange={(e) =>
+                    setNewCustomer({ ...newCustomer, address: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
               <div className="flex justify-end gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => setShowNewCustomerDialog(false)}
                 >
                   إلغاء
                 </Button>
-                <Button onClick={handleSaveNewCustomer}>حفظ العميل</Button>
+                <Button type="submit">حفظ العميل</Button>
               </div>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
 
