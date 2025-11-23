@@ -50,14 +50,12 @@ export default function NewInvoicePage() {
   );
 
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null
-  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
 
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string>("");
 
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductWithBrand[]>(
@@ -79,19 +77,16 @@ export default function NewInvoicePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch customers directly from Supabase - NO FILTERING
         const { data: customersData } = await supabase
           .from("customers")
           .select("*")
           .order("name", { ascending: true });
 
-        // Fetch brands directly from Supabase - NO FILTERING
         const { data: brandsData } = await supabase
           .from("brands")
           .select("*")
           .order("name", { ascending: true });
 
-        // Keep the rest as-is
         const [productsData, nextInvoiceNum, settingsData] = await Promise.all([
           productService.getAllProducts(),
           invoiceService.generateInvoiceNumber(),
@@ -120,7 +115,7 @@ export default function NewInvoicePage() {
   }, [invoiceItems]);
 
   const handleBrandChange = (brandId: string) => {
-    setSelectedBrandId(brandId || null);
+    setSelectedBrandId(brandId);
     if (!brandId) {
       setFilteredProducts(products);
       return;
@@ -211,7 +206,7 @@ export default function NewInvoicePage() {
     try {
       const invoiceData = {
         customer_id: selectedCustomerId,
-        brand_id: selectedBrandId,
+        brand_id: selectedBrandId || null,
         invoice_number: invoiceNumber,
         invoice_title: invoiceTitle.trim(),
         invoice_date: invoiceDate,
@@ -288,8 +283,8 @@ export default function NewInvoicePage() {
                     <select
                       id="customer"
                       className="flex-1 border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      value={selectedCustomerId || ""}
-                      onChange={(e) => setSelectedCustomerId(e.target.value || null)}
+                      value={selectedCustomerId}
+                      onChange={(e) => setSelectedCustomerId(e.target.value)}
                     >
                       <option value="">اختر عميل</option>
                       {customers.map((c) => (
@@ -312,7 +307,7 @@ export default function NewInvoicePage() {
                   <select
                     id="brand"
                     className="w-full border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    value={selectedBrandId || ""}
+                    value={selectedBrandId}
                     onChange={(e) => handleBrandChange(e.target.value)}
                   >
                     <option value="">اختر علامة تجارية</option>
