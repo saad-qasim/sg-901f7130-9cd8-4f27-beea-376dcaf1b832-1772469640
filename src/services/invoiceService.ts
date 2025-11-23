@@ -122,27 +122,50 @@ export const invoiceService = {
     return data;
   },
 
-  async generateInvoiceNumber(): Promise<string> {
-    const today = new Date();
-    const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
-    
-    const { data, error } = await supabase
-      .from("invoices")
-      .select("invoice_number")
-      .like("invoice_number", `INV-${dateStr}-%`)
-      .order("invoice_number", { ascending: false })
-      .limit(1);
+  async generateInvoiceNumber(companyId: string): Promise<string> {
+    // 1. جلب إعدادات الشركة
+    const { data: company, error: companyError } = await supabase
+      .from("company_settings")
+      .select("invoice_start_number, invoice_prefix")
+      .eq("id", companyId)
+      .single();
 
-    if (error) throw error;
-
-    let sequence = 1;
-    if (data && data.length > 0 && data[0].invoice_number) {
-      const lastNumber = data[0].invoice_number;
-      const lastSequence = parseInt(lastNumber.split("-")[2]);
-      sequence = lastSequence + 1;
+    if (companyError) {
+      throw new Error(`Failed to fetch company settings: ${companyError.message}`);
     }
 
-    return `INV-${dateStr}-${sequence.toString().padStart(4, "0")}`;
+    // 2. جلب آخر فاتورة لهذه الشركة
+    const { data: lastInvoice, error: lastError } = await supabase
+      .from("invoices")
+      .select("invoice_number")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastError) {
+      throw new Error(`Failed to fetch last invoice: ${lastError.message}`);
+    }
+
+    // 3. استخراج الجزء الرقمي من رقم الفاتورة الأخير إن وجد
+    let currentNumber = company.invoice_start_number - 1;
+
+    if (lastInvoice?.invoice_number) {
+      const match = lastInvoice.invoice_number.match(/(\d+)$/);
+      if (match) {
+        const parsed = parseInt(match[1], 10);
+        if (!isNaN(parsed)) {
+          currentNumber = Math.max(currentNumber, parsed);
+        }
+      }
+    }
+
+    // 4. حساب الرقم التالي وإنشاء رقم الفاتورة
+    const nextNumber = currentNumber + 1;
+    const padded = nextNumber.toString().padStart(6, "0");
+    const invoiceNumber = `${company.invoice_prefix}${padded}`;
+    
+    return invoiceNumber;
   },
 
   async searchBySerialNumber(serialNumber: string) {

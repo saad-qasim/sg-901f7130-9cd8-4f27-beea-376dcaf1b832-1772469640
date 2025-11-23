@@ -44,6 +44,8 @@ export default function AdminCompaniesPage() {
     company_name: "",
     company_info_text: "",
     default_currency: "IQD" as "IQD" | "USD",
+    invoice_start_number: 1,
+    invoice_prefix: "INV-",
   });
 
   useEffect(() => {
@@ -79,6 +81,8 @@ export default function AdminCompaniesPage() {
         company_name: company.company_name || "",
         company_info_text: company.company_info_text || "",
         default_currency: (company.default_currency as "IQD" | "USD") || "IQD",
+        invoice_start_number: company.invoice_start_number || 1,
+        invoice_prefix: company.invoice_prefix || "INV-",
       });
     } else {
       setEditingCompany(null);
@@ -86,6 +90,8 @@ export default function AdminCompaniesPage() {
         company_name: "",
         company_info_text: "",
         default_currency: "IQD",
+        invoice_start_number: 1,
+        invoice_prefix: "INV-",
       });
     }
     setShowDialog(true);
@@ -98,6 +104,8 @@ export default function AdminCompaniesPage() {
       company_name: "",
       company_info_text: "",
       default_currency: "IQD",
+      invoice_start_number: 1,
+      invoice_prefix: "INV-",
     });
   };
 
@@ -290,6 +298,45 @@ export default function AdminCompaniesPage() {
                     <SelectItem value="USD">US Dollar (USD)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="invoice-prefix">
+                  بادئة رقم الفاتورة
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (مثل: INV- أو FAT-)
+                  </span>
+                </Label>
+                <Input
+                  id="invoice-prefix"
+                  value={formData.invoice_prefix}
+                  onChange={(e) =>
+                    setFormData({ ...formData, invoice_prefix: e.target.value })
+                  }
+                  placeholder="INV-"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="invoice-start-number">
+                  أول رقم للفاتورة
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (يبدأ الترقيم من هذا الرقم)
+                  </span>
+                </Label>
+                <Input
+                  id="invoice-start-number"
+                  type="number"
+                  min="1"
+                  value={formData.invoice_start_number}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      invoice_start_number: Math.max(1, parseInt(e.target.value) || 1),
+                    })
+                  }
+                  placeholder="1"
+                />
               </div>
 
               <div className="flex gap-2 justify-end">
