@@ -209,7 +209,15 @@ export default function NewInvoicePage() {
       return;
     }
     try {
-      const createdCustomer = await customerService.createCustomer(newCustomer);
+      const { data: createdCustomer, error: createError } = await supabase
+        .from("customers")
+        .insert([newCustomer])
+        .select()
+        .single();
+
+      if (createError) {
+        throw createError;
+      }
       
       // Refresh customers list
       const { data: customersData } = await supabase
