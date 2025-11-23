@@ -59,12 +59,14 @@ export default function EditInvoicePage() {
   const [notes, setNotes] = useState("");
   const [warrantyText, setWarrantyText] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [companyInfoSnapshot, setCompanyInfoSnapshot] = useState<string>("");
 
   // Reference data
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
-  const [companyInfo, setCompanyInfo] = useState("");
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   // UI states
   const [customerSearch, setCustomerSearch] = useState("");
@@ -128,11 +130,7 @@ export default function EditInvoicePage() {
 
       setCustomers(customersData || []);
       setBrands(brandsData || []);
-      
-      // استخدام أول شركة إن وجدت
-      if (companiesData && companiesData.length > 0) {
-        setCompanyInfo(companiesData[0].company_info_text || "");
-      }
+      setCompanies(companiesData || []);
     } catch (error) {
       console.error("Error loading reference data:", error);
       alert("Failed to load reference data");
@@ -157,6 +155,16 @@ export default function EditInvoicePage() {
       // Set brand
       const brand = brands.find((b) => b.id === data.brand_id);
       setSelectedBrand(brand || null);
+
+      // Set company
+      if (data.company_id) {
+        setSelectedCompanyId(data.company_id);
+        const company = companies.find((c) => c.id === data.company_id);
+        if (company) {
+          const snapshot = `${company.company_name}\n${company.company_info_text || ""}`;
+          setCompanyInfoSnapshot(snapshot);
+        }
+      }
 
       // Set other invoice fields
       setCurrency(data.currency as "IQD" | "USD");
@@ -361,6 +369,7 @@ export default function EditInvoicePage() {
         invoice_title: invoiceTitle,
         customer_id: selectedCustomer.id,
         brand_id: selectedBrand.id,
+        company_id: selectedCompanyId || null,
         invoice_date: invoiceDate,
         warranty_end_date: warrantyEndDate,
         currency,
@@ -368,7 +377,7 @@ export default function EditInvoicePage() {
         shipping_cost: shippingCost,
         total: calculateTotal(),
         notes: notes || null,
-        company_info_snapshot: companyInfo,
+        company_info_snapshot: companyInfoSnapshot,
         warranty_text_snapshot: warrantyText || null,
       };
 

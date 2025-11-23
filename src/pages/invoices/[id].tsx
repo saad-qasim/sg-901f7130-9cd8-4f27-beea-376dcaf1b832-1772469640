@@ -237,8 +237,14 @@ export default function InvoiceDetailPage() {
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="font-semibold text-sm mb-2 text-gray-700">From:</h3>
-              <div className="whitespace-pre-line text-xs text-gray-600 leading-relaxed">
-                {invoice.company_info_snapshot}
+              <div className="text-xs text-gray-600 leading-relaxed">
+                {invoice.company_info_snapshot ? (
+                  invoice.company_info_snapshot.split("\n").map((line, idx) => (
+                    <div key={idx}>{line || "\u00A0"}</div>
+                  ))
+                ) : (
+                  <div className="text-muted-foreground">لا توجد معلومات الشركة</div>
+                )}
               </div>
             </div>
             <div>

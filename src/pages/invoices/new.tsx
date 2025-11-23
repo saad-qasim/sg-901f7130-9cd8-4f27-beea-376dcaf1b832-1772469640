@@ -80,6 +80,7 @@ export default function NewInvoicePage() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
     null
   );
+  const [companyInfoSnapshot, setCompanyInfoSnapshot] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -160,6 +161,16 @@ export default function NewInvoicePage() {
 
     generateInvoiceNum();
   }, [selectedCompanyId]);
+
+  // تحديث company_info_snapshot عند تغيير الشركة
+  useEffect(() => {
+    if (companySettings) {
+      const snapshot = `${companySettings.company_name}\n${companySettings.company_info_text || ""}`;
+      setCompanyInfoSnapshot(snapshot);
+    } else {
+      setCompanyInfoSnapshot("");
+    }
+  }, [companySettings]);
 
   // حساب تاريخ انتهاء الضمان تلقائياً عند تغيير تاريخ الفاتورة
   useEffect(() => {
@@ -325,6 +336,7 @@ export default function NewInvoicePage() {
         invoice_title: invoiceTitle.trim(),
         invoice_date: invoiceDate,
         warranty_end_date: warrantyEndDate || null,
+        company_info_snapshot: companyInfoSnapshot,
         total,
         currency,
         notes,
