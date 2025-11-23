@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
-import { customerService, Customer } from "@/services/customerService";
-import { brandService, Brand } from "@/services/brandService";
+import { supabase } from "@/lib/supabaseClient";
 import { productService, ProductWithBrand } from "@/services/productService";
-import { companyService, CompanySettings } from "@/services/companyService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +26,10 @@ import {
 import { Trash2, Plus } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { Database } from "@/integrations/supabase/types";
+
+type Customer = Database["public"]["Tables"]["customers"]["Row"];
+type Brand = Database["public"]["Tables"]["brands"]["Row"];
 
 interface InvoiceItem {
   product_id: string | null;
@@ -90,15 +92,46 @@ export default function EditInvoicePage() {
 
   const loadReferenceData = async () => {
     try {
-      const [customersData, brandsData, companyData] = await Promise.all([
-        customerService.getAllCustomers(),
-        brandService.getAllBrands(),
-        companyService.getCompanySettings(),
-      ]);
+      // تحميل العملاء
+      const { data: customersData, error: customersError } = await supabase
+        .from("customers")
+        .select("*")
+        .order("name", { ascending: true });
 
-      setCustomers(customersData);
-      setBrands(brandsData);
-      setCompanyInfo(companyData?.company_info_text || "");
+      if (customersError) {
+        console.error("Error loading customers:", customersError);
+        throw customersError;
+      }
+
+      // تحميل العلامات التجارية
+      const { data: brandsData, error: brandsError } = await supabase
+        .from("brands")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (brandsError) {
+        console.error("Error loading brands:", brandsError);
+        throw brandsError;
+      }
+
+      // تحميل الشركات
+      const { data: companiesData, error: companiesError } = await supabase
+        .from("company_settings")
+        .select("*")
+        .order("company_name", { ascending: true });
+
+      if (companiesError) {
+        console.error("Error loading companies:", companiesError);
+        throw companiesError;
+      }
+
+      setCustomers(customersData || []);
+      setBrands(brandsData || []);
+      
+      // استخدام أول شركة إن وجدت
+      if (companiesData && companiesData.length > 0) {
+        setCompanyInfo(companiesData[0].company_info_text || "");
+      }
     } catch (error) {
       console.error("Error loading reference data:", error);
       alert("Failed to load reference data");
@@ -164,12 +197,18 @@ export default function EditInvoicePage() {
     }
 
     try {
-      const newCustomer = await customerService.createCustomer({
-        name: newCustomerName,
-        phone: newCustomerPhone || null,
-        address: newCustomerAddress || null,
-        email: newCustomerEmail || null,
-      });
+      const { data: newCustomer, error } = await supabase
+        .from("customers")
+        .insert([{
+          name: newCustomerName,
+          phone: newCustomerPhone || null,
+          address: newCustomerAddress || null,
+          email: newCustomerEmail || null,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
 
       setCustomers([...customers, newCustomer]);
       setSelectedCustomer(newCustomer);
