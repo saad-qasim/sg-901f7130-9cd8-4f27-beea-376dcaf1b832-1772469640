@@ -48,6 +48,7 @@ export default function EditInvoicePage() {
   const [saving, setSaving] = useState(false);
 
   // Invoice data
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceTitle, setInvoiceTitle] = useState("فاتورة بيع");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
@@ -142,6 +143,9 @@ export default function EditInvoicePage() {
     try {
       setLoading(true);
       const data = await invoiceService.getInvoiceById(invoiceId);
+
+      // Set invoice number
+      setInvoiceNumber(data.invoice_number || "");
 
       // Set invoice title
       setInvoiceTitle(data.invoice_title || "فاتورة بيع");
@@ -294,6 +298,11 @@ export default function EditInvoicePage() {
 
   const handleSave = async () => {
     // Validation
+    if (!invoiceNumber.trim()) {
+      alert("يرجى إدخال رقم الفاتورة");
+      return;
+    }
+
     if (!invoiceTitle.trim()) {
       alert("يرجى إدخال اسم الفاتورة");
       return;
@@ -348,6 +357,7 @@ export default function EditInvoicePage() {
       setSaving(true);
 
       const invoiceData = {
+        invoice_number: invoiceNumber.trim(),
         invoice_title: invoiceTitle,
         customer_id: selectedCustomer.id,
         brand_id: selectedBrand.id,
@@ -408,7 +418,7 @@ export default function EditInvoicePage() {
         <h1 className="text-3xl font-bold mb-6 mt-4">تعديل الفاتورة</h1>
 
         <div className="space-y-6">
-          {/* Invoice Title */}
+          {/* Invoice Title and Number */}
           <Card>
             <CardHeader>
               <CardTitle>معلومات الفاتورة</CardTitle>
@@ -421,6 +431,22 @@ export default function EditInvoicePage() {
                   value={invoiceTitle}
                   onChange={(e) => setInvoiceTitle(e.target.value)}
                   placeholder="فاتورة بيع"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="invoice-number">
+                  رقم الفاتورة *
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (يمكن التعديل يدويًا)
+                  </span>
+                </Label>
+                <Input
+                  id="invoice-number"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  placeholder="INV-000001"
+                  required
                 />
               </div>
 

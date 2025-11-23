@@ -39,6 +39,7 @@ type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
 type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];
+type CompanySettingsRow = Database["public"]["Tables"]["company_settings"]["Row"];
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -73,6 +74,8 @@ export default function NewInvoicePage() {
   const [currency, setCurrency] = useState<"IQD" | "USD">("IQD");
   const [notes, setNotes] = useState("");
 
+  const [companies, setCompanies] = useState<CompanySettingsRow[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(
     null
   );
@@ -105,7 +108,7 @@ export default function NewInvoicePage() {
           setBrands(brandsData || []);
         }
 
-        // تحميل إعدادات الشركة
+        // تحميل إعدادات الشركات
         const { data: companiesData, error: companiesError } = await supabase
           .from("company_settings")
           .select("*")
@@ -113,22 +116,26 @@ export default function NewInvoicePage() {
 
         if (companiesError) {
           console.error("Error loading companies", companiesError);
+        } else {
+          setCompanies(companiesData || []);
+          // استخدام أول شركة إن وجدت
+          if (companiesData && companiesData.length > 0) {
+            setSelectedCompanyId(companiesData[0].id);
+            setCompanySettings(companiesData[0] as CompanySettings);
+            // توليد رقم الفاتورة للشركة الأولى
+            try {
+              const nextInvoiceNum = await invoiceService.generateInvoiceNumber(companiesData[0].id);
+              setInvoiceNumber(nextInvoiceNum);
+            } catch (err) {
+              console.error("Error generating invoice number:", err);
+            }
+          }
         }
 
-        // تحميل المنتجات ورقم الفاتورة التالي
-        const [productsData, nextInvoiceNum] = await Promise.all([
-          productService.getAllProducts(),
-          invoiceService.generateInvoiceNumber(),
-        ]);
-
+        // تحميل المنتجات
+        const productsData = await productService.getAllProducts();
         setProducts(productsData);
         setFilteredProducts(productsData);
-        setInvoiceNumber(nextInvoiceNum.toString());
-        
-        // استخدام أول شركة إن وجدت
-        if (companiesData && companiesData.length > 0) {
-          setCompanySettings(companiesData[0] as CompanySettings);
-        }
       } catch (error) {
         console.error("Error loading initial data:", error);
       }
@@ -136,6 +143,22 @@ export default function NewInvoicePage() {
 
     loadInitialData();
   }, []);
+
+  // توليد رقم فاتورة جديد عند تغيير الشركة
+  useEffect(() => {
+    const generateInvoiceNum = async () => {
+      if (selectedCompanyId) {
+        try {
+          const nextInvoiceNum = await invoiceService.generateInvoiceNumber(selectedCompanyId);
+          setInvoiceNumber(nextInvoiceNum);
+        } catch (err) {
+          console.error("Error generating invoice number:", err);
+        }
+      }
+    };
+
+    generateInvoiceNum();
+  }, [selectedCompanyId]);
 
   useEffect(() => {
     const newTotal = invoiceItems.reduce(
@@ -244,6 +267,11 @@ export default function NewInvoicePage() {
   };
 
   const handleCreateInvoice = async () => {
+    if (!selectedCompanyId) {
+      alert("يرجى اختيار شركة");
+      return;
+    }
+
     if (!selectedCustomerId) {
       alert("Please select a customer.");
       return;
@@ -257,12 +285,25 @@ export default function NewInvoicePage() {
       return;
     }
 
+    // لو الرقم فارغ، أعد توليده
+    let finalInvoiceNumber = invoiceNumber.trim();
+    if (!finalInvoiceNumber) {
+      try {
+        finalInvoiceNumber = await invoiceService.generateInvoiceNumber(selectedCompanyId);
+        setInvoiceNumber(finalInvoiceNumber);
+      } catch (err) {
+        alert("فشل في توليد رقم الفاتورة");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const invoiceData = {
+        company_id: selectedCompanyId,
         customer_id: selectedCustomerId,
         brand_id: selectedBrandId || null,
-        invoice_number: invoiceNumber,
+        invoice_number: finalInvoiceNumber,
         invoice_title: invoiceTitle.trim(),
         invoice_date: invoiceDate,
         total,
@@ -326,6 +367,39 @@ export default function NewInvoicePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main form */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Company Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>معلومات الشركة</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="company">الشركة *</Label>
+                  <select
+                    id="company"
+                    className="w-full border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    value={selectedCompanyId}
+                    onChange={(e) => {
+                      const companyId = e.target.value;
+                      setSelectedCompanyId(companyId);
+                      const company = companies.find(c => c.id === companyId);
+                      if (company) {
+                        setCompanySettings(company as CompanySettings);
+                      }
+                    }}
+                    required
+                  >
+                    <option value="">اختر شركة</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.company_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Customer and Brand Selection */}
             <Card>
               <CardHeader>
@@ -493,12 +567,18 @@ export default function NewInvoicePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="invoice-number">رقم الفاتورة</Label>
+                  <Label htmlFor="invoice-number">
+                    رقم الفاتورة *
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (يمكن التعديل يدويًا)
+                    </span>
+                  </Label>
                   <Input
                     id="invoice-number"
                     value={invoiceNumber}
                     onChange={(e) => setInvoiceNumber(e.target.value)}
-                    readOnly
+                    placeholder="INV-000001"
+                    required
                   />
                 </div>
                 <div className="space-y-2">
