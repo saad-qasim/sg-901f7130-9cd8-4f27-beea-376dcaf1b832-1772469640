@@ -48,6 +48,7 @@ export default function NewInvoicePage() {
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+  const [warrantyEndDate, setWarrantyEndDate] = useState<string>("");
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -159,6 +160,19 @@ export default function NewInvoicePage() {
 
     generateInvoiceNum();
   }, [selectedCompanyId]);
+
+  // حساب تاريخ انتهاء الضمان تلقائياً عند تغيير تاريخ الفاتورة
+  useEffect(() => {
+    if (invoiceDate && !warrantyEndDate) {
+      const invoiceDateObj = new Date(invoiceDate);
+      const defaultWarranty = new Date(
+        invoiceDateObj.getFullYear() + 2,
+        invoiceDateObj.getMonth(),
+        invoiceDateObj.getDate()
+      );
+      setWarrantyEndDate(defaultWarranty.toISOString().split("T")[0]);
+    }
+  }, [invoiceDate]);
 
   useEffect(() => {
     const newTotal = invoiceItems.reduce(
@@ -310,6 +324,7 @@ export default function NewInvoicePage() {
         invoice_number: finalInvoiceNumber,
         invoice_title: invoiceTitle.trim(),
         invoice_date: invoiceDate,
+        warranty_end_date: warrantyEndDate || null,
         total,
         currency,
         notes,
@@ -602,6 +617,16 @@ export default function NewInvoicePage() {
                     type="date"
                     value={invoiceDate}
                     onChange={(e) => setInvoiceDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="warranty-end-date">تاريخ انتهاء الضمان</Label>
+                  <Input
+                    id="warranty-end-date"
+                    type="date"
+                    value={warrantyEndDate}
+                    onChange={(e) => setWarrantyEndDate(e.target.value)}
+                    className="border rounded-md px-3 py-2 text-sm w-full"
                   />
                 </div>
                 <div className="space-y-2">
