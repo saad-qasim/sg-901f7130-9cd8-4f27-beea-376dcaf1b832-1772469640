@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { companyService } from "@/services/companyService";
+import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,8 +53,17 @@ export default function AdminCompaniesPage() {
   const loadCompanies = async () => {
     try {
       setLoading(true);
-      const data = await companyService.getAllCompanies();
-      setCompanies(data);
+      const { data, error } = await supabase
+        .from("company_settings")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading companies:", error);
+        throw error;
+      }
+
+      setCompanies(data || []);
     } catch (error) {
       console.error("Error loading companies:", error);
       alert("Failed to load companies");
@@ -102,10 +111,22 @@ export default function AdminCompaniesPage() {
 
     try {
       if (editingCompany) {
-        await companyService.updateCompany(editingCompany.id, formData);
+        // Update existing company
+        const { error } = await supabase
+          .from("company_settings")
+          .update(formData)
+          .eq("id", editingCompany.id);
+
+        if (error) throw error;
       } else {
-        await companyService.createCompany(formData);
+        // Create new company
+        const { error } = await supabase
+          .from("company_settings")
+          .insert([formData]);
+
+        if (error) throw error;
       }
+      
       await loadCompanies();
       handleCloseDialog();
     } catch (error) {
@@ -120,7 +141,13 @@ export default function AdminCompaniesPage() {
     }
 
     try {
-      await companyService.deleteCompany(id);
+      const { error } = await supabase
+        .from("company_settings")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
       await loadCompanies();
     } catch (error) {
       console.error("Error deleting company:", error);
