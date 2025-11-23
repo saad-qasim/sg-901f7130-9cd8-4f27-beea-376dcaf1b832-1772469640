@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Printer, Download, Edit } from "lucide-react";
+import { Printer, Download, Edit, CheckCircle2, DollarSign } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -21,6 +21,7 @@ export default function InvoiceDetailPage() {
   const { id } = router.query;
   const [invoice, setInvoice] = useState<InvoiceWithRelations | null>(null);
   const [loading, setLoading] = useState(true);
+  const [markingAsPaid, setMarkingAsPaid] = useState(false);
 
   useEffect(() => {
     if (id && typeof id === "string") {
@@ -38,6 +39,29 @@ export default function InvoiceDetailPage() {
       alert("Failed to load invoice");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!invoice || !id) return;
+
+    if (!confirm("هل أنت متأكد من أن هذه الفاتورة تم دفعها؟")) {
+      return;
+    }
+
+    try {
+      setMarkingAsPaid(true);
+      await invoiceService.markInvoiceAsPaid(id as string);
+      
+      // إعادة تحميل الفاتورة لعرض الحالة المحدثة
+      await loadInvoice(id as string);
+      
+      alert("✅ تم تحديث حالة الفاتورة إلى مدفوعة بنجاح!");
+    } catch (error) {
+      console.error("Error marking invoice as paid:", error);
+      alert("فشل في تحديث حالة الفاتورة. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setMarkingAsPaid(false);
     }
   };
 
@@ -68,7 +92,7 @@ export default function InvoiceDetailPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("ar-IQ", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -85,7 +109,7 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <p>Loading invoice...</p>
+        <p>جاري التحميل...</p>
       </div>
     );
   }
@@ -93,13 +117,15 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <p>Invoice not found</p>
+        <p>الفاتورة غير موجودة</p>
         <Button onClick={() => router.push("/invoices")} className="mt-4">
-          Back to Invoices
+          العودة إلى الفواتير
         </Button>
       </div>
     );
   }
+
+  const isPaid = invoice.payment_status === "paid";
 
   return (
     <ProtectedRoute>
@@ -107,7 +133,41 @@ export default function InvoiceDetailPage() {
         {/* Action Buttons - Hidden when printing */}
         <div className="container mx-auto px-4 mb-6 no-print">
           <BackButton />
-          <div className="flex justify-end gap-2 mt-2">
+          
+          {/* Payment Status Display */}
+          <div className="flex justify-between items-center mt-4 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">حالة الدفع:</span>
+              {isPaid ? (
+                <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1.5 px-3 py-1">
+                  <CheckCircle2 size={14} />
+                  مدفوعة
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-orange-500 text-orange-600 gap-1.5 px-3 py-1">
+                  <DollarSign size={14} />
+                  غير مدفوعة
+                </Badge>
+              )}
+              {isPaid && invoice.payment_date && (
+                <span className="text-xs text-muted-foreground">
+                  تاريخ الدفع: {formatDate(invoice.payment_date)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            {!isPaid && (
+              <Button
+                onClick={handleMarkAsPaid}
+                disabled={markingAsPaid}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle2 size={16} />
+                {markingAsPaid ? "جاري التحديث..." : "تم دفع المبلغ"}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => router.push(`/invoices/${id}/edit`)}
@@ -132,7 +192,16 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Invoice Content - A4 Format */}
-        <div id="invoice-content" className="invoice-a4">
+        <div id="invoice-content" className="invoice-a4 relative">
+          {/* PAID Stamp - Only visible when invoice is paid */}
+          {isPaid && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
+              <div className="border-8 border-green-500 rounded-lg px-8 py-4 rotate-[-15deg] opacity-30">
+                <span className="text-7xl font-black text-green-500">PAID</span>
+              </div>
+            </div>
+          )}
+
           {/* Header with Brand Logo */}
           <div className="flex justify-between items-start border-b-2 border-gray-200 pb-4 mb-6">
             <div>
@@ -142,6 +211,18 @@ export default function InvoiceDetailPage() {
               <p className="text-xl font-semibold text-primary">
                 {invoice.invoice_number}
               </p>
+              {/* Payment Status Badge for Print */}
+              <div className="mt-2 print-only">
+                {isPaid ? (
+                  <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full border border-green-300">
+                    ✓ مدفوعة
+                  </span>
+                ) : (
+                  <span className="inline-block bg-orange-100 text-orange-800 text-xs font-semibold px-3 py-1 rounded-full border border-orange-300">
+                    غير مدفوعة
+                  </span>
+                )}
+              </div>
             </div>
             {invoice.brands?.logo_url && (
               <img
@@ -200,6 +281,15 @@ export default function InvoiceDetailPage() {
               <p className="font-semibold text-sm">{invoice.brands?.name}</p>
             </div>
           </div>
+
+          {/* Payment Status for Print */}
+          {isPaid && invoice.payment_date && (
+            <div className="mb-4 p-2 bg-green-50 border border-green-200 rounded print-only">
+              <p className="text-xs text-green-800">
+                <span className="font-semibold">تاريخ الدفع:</span> {formatDate(invoice.payment_date)}
+              </p>
+            </div>
+          )}
 
           {/* Invoice Items Table */}
           <div className="mb-6">
@@ -289,6 +379,17 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        @media print {
+          .print-only {
+            display: block !important;
+          }
+        }
+        .print-only {
+          display: none;
+        }
+      `}</style>
     </ProtectedRoute>
   );
 }

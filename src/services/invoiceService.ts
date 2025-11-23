@@ -322,5 +322,19 @@ export const invoiceService = {
     if (itemsError) throw itemsError;
 
     return invoice;
+  },
+
+  async markInvoiceAsPaid(id: string): Promise<void> {
+    const now = new Date().toISOString();
+
+    const { error } = await supabase
+      .from("invoices")
+      .update({
+        payment_status: "paid",
+        payment_date: now,
+      })
+      .eq("id", id);
+
+    if (error) throw error;
   }
 };
