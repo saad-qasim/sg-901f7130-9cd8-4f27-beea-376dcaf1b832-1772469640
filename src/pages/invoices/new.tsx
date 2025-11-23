@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { invoiceService } from "@/services/invoiceService";
-import { customerService } from "@/services/customerService";
-import { brandService } from "@/services/brandService";
 import { productService, ProductWithBrand } from "@/services/productService";
 import { companyService, CompanySettings } from "@/services/companyService";
 import { Database } from "@/integrations/supabase/types";
@@ -81,81 +79,62 @@ export default function NewInvoicePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadInitialData = async () => {
       try {
-        // Check authentication status first
-        const { data: { session }, error: authError } = await supabase.auth.getSession();
-        console.log("🔐 Auth session:", session ? "✅ Logged in" : "❌ Not logged in", session?.user?.email);
-        
-        if (authError) {
-          console.error("❌ Auth error:", authError);
-        }
-
-        // Fetch customers with detailed error handling
-        console.log("📞 Fetching customers...");
+        // تحميل العملاء
         const { data: customersData, error: customersError } = await supabase
           .from("customers")
           .select("*")
           .order("name", { ascending: true });
 
         if (customersError) {
-          console.error("❌ Error fetching customers:", customersError);
-          console.error("Error details:", {
-            message: customersError.message,
-            details: customersError.details,
-            hint: customersError.hint,
-            code: customersError.code
-          });
+          console.error("Error loading customers", customersError);
         } else {
-          console.log("✅ Customers fetched:", customersData?.length || 0, "items");
-          console.log("Sample customer data:", customersData?.[0]);
+          setCustomers(customersData || []);
         }
 
-        // Fetch brands with detailed error handling
-        console.log("🏷️ Fetching brands...");
+        // تحميل العلامات التجارية
         const { data: brandsData, error: brandsError } = await supabase
           .from("brands")
           .select("*")
           .order("name", { ascending: true });
 
         if (brandsError) {
-          console.error("❌ Error fetching brands:", brandsError);
-          console.error("Error details:", {
-            message: brandsError.message,
-            details: brandsError.details,
-            hint: brandsError.hint,
-            code: brandsError.code
-          });
+          console.error("Error loading brands", brandsError);
         } else {
-          console.log("✅ Brands fetched:", brandsData?.length || 0, "items");
-          console.log("Sample brand data:", brandsData?.[0]);
+          setBrands(brandsData || []);
         }
 
-        const [productsData, nextInvoiceNum, settingsData] = await Promise.all([
+        // تحميل إعدادات الشركة
+        const { data: companiesData, error: companiesError } = await supabase
+          .from("company_settings")
+          .select("*")
+          .order("company_name", { ascending: true });
+
+        if (companiesError) {
+          console.error("Error loading companies", companiesError);
+        }
+
+        // تحميل المنتجات ورقم الفاتورة التالي
+        const [productsData, nextInvoiceNum] = await Promise.all([
           productService.getAllProducts(),
           invoiceService.generateInvoiceNumber(),
-          companyService.getCompanySettings(),
         ]);
 
-        // Set state with fallback to empty arrays
-        setCustomers(customersData || []);
-        setBrands(brandsData || []);
         setProducts(productsData);
         setFilteredProducts(productsData);
         setInvoiceNumber(nextInvoiceNum.toString());
-        setCompanySettings(settingsData);
-
-        // Final state verification
-        console.log("📊 Final state:", {
-          customersCount: customersData?.length || 0,
-          brandsCount: brandsData?.length || 0,
-          productsCount: productsData?.length || 0
-        });
+        
+        // استخدام أول شركة إن وجدت
+        if (companiesData && companiesData.length > 0) {
+          setCompanySettings(companiesData[0] as CompanySettings);
+        }
       } catch (error) {
-        console.error("💥 Unexpected error in fetchData:", error);
+        console.error("Error loading initial data:", error);
       }
     };
-    fetchData();
+
+    loadInitialData();
   }, []);
 
   useEffect(() => {
