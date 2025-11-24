@@ -6,7 +6,7 @@ import { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export interface User extends SupabaseUser, Omit<Profile, "id" | "updated_at"> {}
+export type User = SupabaseUser & Profile;
 
 interface AuthContextType {
   user: User | null;
@@ -26,35 +26,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchSessionAndProfile = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error("Error fetching session:", sessionError);
-        setLoading(false);
-        return;
-      }
-      
-      setSession(session);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        
+        setSession(session);
 
-      if (session?.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
+        if (session?.user) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
 
-        if (profileError) {
-          console.error("Error loading profile:", profileError);
-        }
+          if (profileError) {
+            console.warn("Could not fetch profile for user, they might not have one yet.", profileError);
+          }
 
-        if (profile) {
-          setUser({ ...session.user, ...profile });
+          const combinedUser: User = {
+            ...session.user,
+            ...profile,
+            id: session.user.id, 
+          };
+          setUser(combinedUser);
         } else {
-          setUser(session.user as User);
+          setUser(null);
         }
-      } else {
-        setUser(null);
+      } catch(e) {
+         console.error("Error in fetchSessionAndProfile", e);
+         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchSessionAndProfile();
@@ -70,14 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .single();
 
           if (error) {
-            console.error("Error on auth state change profile fetch:", error);
+             console.warn("Could not fetch profile on auth state change.", error);
           }
-
-          if (profile) {
-            setUser({ ...session.user, ...profile });
-          } else {
-            setUser(session.user as User);
-          }
+          
+          const combinedUser: User = {
+            ...session.user,
+            ...profile,
+            id: session.user.id,
+          };
+          setUser(combinedUser);
         } else {
           setUser(null);
         }
@@ -91,9 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // The onAuthStateChange listener will handle setting user and session
   };
 
   const signOut = async () => {

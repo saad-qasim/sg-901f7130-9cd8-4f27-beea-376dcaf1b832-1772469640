@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Head from "next/head";
+import { useAuth } from "@/contexts/AuthContext";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +34,7 @@ type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
 
 export default function InvoicesListPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -169,8 +172,16 @@ export default function InvoicesListPage() {
   const allSelected = invoices.length > 0 && selectedInvoices.size === invoices.length;
   const someSelected = selectedInvoices.size > 0 && selectedInvoices.size < invoices.length;
 
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading user...</p>
+      </div>
+    );
+  }
+
   // Check if user can delete invoices
-  const canDeleteInvoices = user.role === 'admin' || user.role === 'manager' || !!user.can_delete_invoices;
+  const canDeleteInvoices = user?.role === 'admin' || user?.role === 'manager' || !!user?.can_delete_invoices;
 
   return (
     <>
@@ -311,6 +322,8 @@ export default function InvoicesListPage() {
                               onClick={() => handleDeleteClick(invoice.id)}
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
                               title="Delete invoice"
+                              disabled={!canDeleteInvoices}
+                              className={!canDeleteInvoices ? "text-gray-400 cursor-not-allowed" : "text-destructive hover:text-destructive hover:bg-destructive/10"}
                             >
                               <Trash2 size={16} />
                             </Button>
