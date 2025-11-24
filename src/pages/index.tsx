@@ -11,7 +11,8 @@ import {
   Users, 
   Search,
   BarChart3,
-  Plus
+  Plus,
+  User
 } from "lucide-react";
 
 export default function Home() {
@@ -45,6 +46,13 @@ export default function Home() {
       icon: Users,
       href: "/admin/users",
       color: "bg-gradient-to-br from-orange-500 to-orange-600"
+    },
+    {
+      title: "الملف الشخصي",
+      description: "عرض وتعديل معلومات حسابك وإدارة كلمة المرور",
+      icon: User,
+      href: "/admin/profile",
+      color: "bg-gradient-to-br from-indigo-500 to-indigo-600"
     },
     {
       title: "البحث برقم السيريال",
