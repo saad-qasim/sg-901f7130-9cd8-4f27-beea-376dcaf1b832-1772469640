@@ -28,6 +28,7 @@ import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Database } from "@/integrations/supabase/types";
+import Head from "next/head";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
@@ -422,471 +423,476 @@ export default function EditInvoicePage() {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <div className="flex items-center gap-3 mb-4">
-          <HomeButton />
-          <BackButton />
-        </div>
-        <h1 className="text-3xl font-bold mb-6 mt-4">تعديل الفاتورة</h1>
+    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
+      <>
+        <Head>
+          <title>تعديل الفاتورة - Invoice PRO</title>
+        </Head>
+        <div className="container mx-auto py-8 px-4 max-w-6xl">
+          <div className="flex items-center gap-3 mb-4">
+            <HomeButton />
+            <BackButton />
+          </div>
+          <h1 className="text-3xl font-bold mb-6 mt-4">تعديل الفاتورة</h1>
 
-        <div className="space-y-6">
-          {/* Invoice Title and Number */}
-          <Card>
-            <CardHeader>
-              <CardTitle>معلومات الفاتورة</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="invoice-title">اسم الفاتورة</Label>
-                <Input
-                  id="invoice-title"
-                  value={invoiceTitle}
-                  onChange={(e) => setInvoiceTitle(e.target.value)}
-                  placeholder="فاتورة بيع"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="invoice-number">
-                  رقم الفاتورة *
-                  <span className="text-xs text-muted-foreground ml-2">
-                    (يمكن التعديل يدويًا)
-                  </span>
-                </Label>
-                <Input
-                  id="invoice-number"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  placeholder="INV-000001"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6">
+            {/* Invoice Title and Number */}
+            <Card>
+              <CardHeader>
+                <CardTitle>معلومات الفاتورة</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="invoice-date">تاريخ الفاتورة</Label>
+                  <Label htmlFor="invoice-title">اسم الفاتورة</Label>
                   <Input
-                    id="invoice-date"
-                    type="date"
-                    value={invoiceDate}
-                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    id="invoice-title"
+                    value={invoiceTitle}
+                    onChange={(e) => setInvoiceTitle(e.target.value)}
+                    placeholder="فاتورة بيع"
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="warranty-end-date">تاريخ انتهاء الضمان</Label>
+                  <Label htmlFor="invoice-number">
+                    رقم الفاتورة *
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (يمكن التعديل يدويًا)
+                    </span>
+                  </Label>
                   <Input
-                    id="warranty-end-date"
-                    type="date"
-                    value={warrantyEndDate}
-                    onChange={(e) => setWarrantyEndDate(e.target.value)}
+                    id="invoice-number"
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    placeholder="INV-000001"
+                    required
                   />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Customer Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>العميل</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!selectedCustomer ? (
-                <>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="customer-search">البحث عن عميل</Label>
+                    <Label htmlFor="invoice-date">تاريخ الفاتورة</Label>
                     <Input
-                      id="customer-search"
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      placeholder="ابحث بالاسم أو رقم الهاتف"
+                      id="invoice-date"
+                      type="date"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="warranty-end-date">تاريخ انتهاء الضمان</Label>
+                    <Input
+                      id="warranty-end-date"
+                      type="date"
+                      value={warrantyEndDate}
+                      onChange={(e) => setWarrantyEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  {customerSearch && filteredCustomers.length > 0 && (
-                    <div className="border rounded-md max-h-48 overflow-y-auto">
-                      {filteredCustomers.map((customer) => (
-                        <button
-                          key={customer.id}
-                          onClick={() => {
-                            setSelectedCustomer(customer);
-                            setCustomerSearch("");
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-muted"
-                        >
-                          <div className="font-semibold">{customer.name}</div>
-                          {customer.phone && (
-                            <div className="text-sm text-muted-foreground">
-                              {customer.phone}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {!showNewCustomerForm && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowNewCustomerForm(true)}
-                      className="w-full"
-                    >
-                      <Plus size={16} className="mr-2" />
-                      إضافة عميل جديد
-                    </Button>
-                  )}
-
-                  {showNewCustomerForm && (
-                    <div className="space-y-3 p-4 border rounded-md">
-                      <h3 className="font-semibold">عميل جديد</h3>
-                      <div>
-                        <Label htmlFor="new-customer-name">الاسم *</Label>
-                        <Input
-                          id="new-customer-name"
-                          value={newCustomerName}
-                          onChange={(e) => setNewCustomerName(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="new-customer-phone">الهاتف</Label>
-                        <Input
-                          id="new-customer-phone"
-                          value={newCustomerPhone}
-                          onChange={(e) => setNewCustomerPhone(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="new-customer-address">العنوان</Label>
-                        <Input
-                          id="new-customer-address"
-                          value={newCustomerAddress}
-                          onChange={(e) => setNewCustomerAddress(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="new-customer-email">البريد الإلكتروني</Label>
-                        <Input
-                          id="new-customer-email"
-                          type="email"
-                          value={newCustomerEmail}
-                          onChange={(e) => setNewCustomerEmail(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button onClick={handleAddCustomer}>حفظ العميل</Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowNewCustomerForm(false);
-                            setNewCustomerName("");
-                            setNewCustomerPhone("");
-                            setNewCustomerAddress("");
-                            setNewCustomerEmail("");
-                          }}
-                        >
-                          إلغاء
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="p-4 border rounded-md bg-muted/50">
-                  <div className="flex justify-between items-start">
+            {/* Customer Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>العميل</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!selectedCustomer ? (
+                  <>
                     <div>
-                      <p className="font-semibold text-lg">{selectedCustomer.name}</p>
-                      {selectedCustomer.phone && (
-                        <p className="text-sm text-muted-foreground">
-                          {selectedCustomer.phone}
-                        </p>
-                      )}
-                      {selectedCustomer.address && (
-                        <p className="text-sm text-muted-foreground">
-                          {selectedCustomer.address}
-                        </p>
-                      )}
+                      <Label htmlFor="customer-search">البحث عن عميل</Label>
+                      <Input
+                        id="customer-search"
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        placeholder="ابحث بالاسم أو رقم الهاتف"
+                      />
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedCustomer(null)}
-                    >
-                      تغيير
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Brand Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle>العلامة التجارية</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="brand-select">اختر العلامة التجارية</Label>
-                  <Select
-                    value={selectedBrand?.id || ""}
-                    onValueChange={(value) => {
-                      const brand = brands.find((b) => b.id === value);
-                      setSelectedBrand(brand || null);
-                    }}
-                  >
-                    <SelectTrigger id="brand-select">
-                      <SelectValue placeholder="اختر العلامة التجارية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand.id} value={brand.id}>
-                          {brand.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {customerSearch && filteredCustomers.length > 0 && (
+                      <div className="border rounded-md max-h-48 overflow-y-auto">
+                        {filteredCustomers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            onClick={() => {
+                              setSelectedCustomer(customer);
+                              setCustomerSearch("");
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-muted"
+                          >
+                            <div className="font-semibold">{customer.name}</div>
+                            {customer.phone && (
+                              <div className="text-sm text-muted-foreground">
+                                {customer.phone}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                {selectedBrand && selectedBrand.logo_url && (
-                  <div className="flex justify-center p-4 border rounded-md bg-muted/20">
-                    <img
-                      src={selectedBrand.logo_url}
-                      alt={selectedBrand.name}
-                      className="max-h-24 object-contain"
-                    />
+                    {!showNewCustomerForm && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowNewCustomerForm(true)}
+                        className="w-full"
+                      >
+                        <Plus size={16} className="mr-2" />
+                        إضافة عميل جديد
+                      </Button>
+                    )}
+
+                    {showNewCustomerForm && (
+                      <div className="space-y-3 p-4 border rounded-md">
+                        <h3 className="font-semibold">عميل جديد</h3>
+                        <div>
+                          <Label htmlFor="new-customer-name">الاسم *</Label>
+                          <Input
+                            id="new-customer-name"
+                            value={newCustomerName}
+                            onChange={(e) => setNewCustomerName(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="new-customer-phone">الهاتف</Label>
+                          <Input
+                            id="new-customer-phone"
+                            value={newCustomerPhone}
+                            onChange={(e) => setNewCustomerPhone(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="new-customer-address">العنوان</Label>
+                          <Input
+                            id="new-customer-address"
+                            value={newCustomerAddress}
+                            onChange={(e) => setNewCustomerAddress(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="new-customer-email">البريد الإلكتروني</Label>
+                          <Input
+                            id="new-customer-email"
+                            type="email"
+                            value={newCustomerEmail}
+                            onChange={(e) => setNewCustomerEmail(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handleAddCustomer}>حفظ العميل</Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowNewCustomerForm(false);
+                              setNewCustomerName("");
+                              setNewCustomerPhone("");
+                              setNewCustomerAddress("");
+                              setNewCustomerEmail("");
+                            }}
+                          >
+                            إلغاء
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="p-4 border rounded-md bg-muted/50">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-lg">{selectedCustomer.name}</p>
+                        {selectedCustomer.phone && (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedCustomer.phone}
+                          </p>
+                        )}
+                        {selectedCustomer.address && (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedCustomer.address}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedCustomer(null)}
+                      >
+                        تغيير
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Currency Selection */}
-          {selectedBrand && (
-            <Card>
-              <CardHeader>
-                <CardTitle>العملة</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={currency}
-                  onValueChange={(value: "IQD" | "USD") => setCurrency(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IQD">دينار عراقي (IQD)</SelectItem>
-                    <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
-                  </SelectContent>
-                </Select>
               </CardContent>
             </Card>
-          )}
 
-          {/* Invoice Items */}
-          {selectedBrand && (
+            {/* Brand Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>عناصر الفاتورة</CardTitle>
+                <CardTitle>العلامة التجارية</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>المنتج</TableHead>
-                        <TableHead>الرقم التسلسلي</TableHead>
-                        <TableHead>الكمية</TableHead>
-                        <TableHead>السعر</TableHead>
-                        <TableHead>المجموع</TableHead>
-                        <TableHead className="w-20"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {items.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <Select
-                              value={item.product_id || ""}
-                              onValueChange={(value) =>
-                                handleProductChange(index, value)
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="اختر المنتج">
-                                  {item.product_name_snapshot || "اختر المنتج"}
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.map((product) => (
-                                  <SelectItem key={product.id} value={product.id}>
-                                    {product.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="text"
-                              className="border rounded-md px-2 py-1 w-full text-sm"
-                              value={item.serial_number}
-                              onChange={(e) =>
-                                handleItemFieldChange(
-                                  index,
-                                  "serial_number",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="SN / الرقم التسلسلي"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemFieldChange(
-                                  index,
-                                  "quantity",
-                                  e.target.value
-                                )
-                              }
-                              className="w-20"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.unit_price}
-                              onChange={(e) =>
-                                handleItemFieldChange(
-                                  index,
-                                  "unit_price",
-                                  e.target.value
-                                )
-                              }
-                              className="w-32"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-semibold">
-                              {item.total.toFixed(2)}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveItem(index)}
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  <Button variant="outline" onClick={handleAddItem} className="w-full">
-                    <Plus size={16} className="mr-2" />
-                    إضافة عنصر
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Totals */}
-          {items.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>المجاميع</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-lg">
-                    <span>المجموع الفرعي:</span>
-                    <span className="font-semibold">
-                      {calculateSubtotal().toFixed(2)} {currency}
-                    </span>
-                  </div>
-
                   <div>
-                    <Label htmlFor="shipping-cost">تكلفة الشحن</Label>
-                    <Input
-                      id="shipping-cost"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={shippingCost}
-                      onChange={(e) => setShippingCost(Number(e.target.value))}
-                    />
+                    <Label htmlFor="brand-select">اختر العلامة التجارية</Label>
+                    <Select
+                      value={selectedBrand?.id || ""}
+                      onValueChange={(value) => {
+                        const brand = brands.find((b) => b.id === value);
+                        setSelectedBrand(brand || null);
+                      }}
+                    >
+                      <SelectTrigger id="brand-select">
+                        <SelectValue placeholder="اختر العلامة التجارية" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brands.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>
+                            {brand.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="flex justify-between text-2xl font-bold border-t pt-4">
-                    <span>المجموع الكلي:</span>
-                    <span>
-                      {calculateTotal().toFixed(2)} {currency}
-                    </span>
-                  </div>
+                  {selectedBrand && selectedBrand.logo_url && (
+                    <div className="flex justify-center p-4 border rounded-md bg-muted/20">
+                      <img
+                        src={selectedBrand.logo_url}
+                        alt={selectedBrand.name}
+                        className="max-h-24 object-contain"
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Warranty Text */}
-          {selectedBrand && (
+            {/* Currency Selection */}
+            {selectedBrand && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>العملة</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Select
+                    value={currency}
+                    onValueChange={(value: "IQD" | "USD") => setCurrency(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IQD">دينار عراقي (IQD)</SelectItem>
+                      <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Invoice Items */}
+            {selectedBrand && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>عناصر الفاتورة</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>المنتج</TableHead>
+                          <TableHead>الرقم التسلسلي</TableHead>
+                          <TableHead>الكمية</TableHead>
+                          <TableHead>السعر</TableHead>
+                          <TableHead>المجموع</TableHead>
+                          <TableHead className="w-20"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <Select
+                                value={item.product_id || ""}
+                                onValueChange={(value) =>
+                                  handleProductChange(index, value)
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="اختر المنتج">
+                                    {item.product_name_snapshot || "اختر المنتج"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((product) => (
+                                    <SelectItem key={product.id} value={product.id}>
+                                      {product.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="text"
+                                className="border rounded-md px-2 py-1 w-full text-sm"
+                                value={item.serial_number}
+                                onChange={(e) =>
+                                  handleItemFieldChange(
+                                    index,
+                                    "serial_number",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="SN / الرقم التسلسلي"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleItemFieldChange(
+                                    index,
+                                    "quantity",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-20"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.unit_price}
+                                onChange={(e) =>
+                                  handleItemFieldChange(
+                                    index,
+                                    "unit_price",
+                                    e.target.value
+                                  )
+                                }
+                                className="w-32"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-semibold">
+                                {item.total.toFixed(2)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveItem(index)}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    <Button variant="outline" onClick={handleAddItem} className="w-full">
+                      <Plus size={16} className="mr-2" />
+                      إضافة عنصر
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Totals */}
+            {items.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>المجاميع</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-lg">
+                      <span>المجموع الفرعي:</span>
+                      <span className="font-semibold">
+                        {calculateSubtotal().toFixed(2)} {currency}
+                      </span>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="shipping-cost">تكلفة الشحن</Label>
+                      <Input
+                        id="shipping-cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={shippingCost}
+                        onChange={(e) => setShippingCost(Number(e.target.value))}
+                      />
+                    </div>
+
+                    <div className="flex justify-between text-2xl font-bold border-t pt-4">
+                      <span>المجموع الكلي:</span>
+                      <span>
+                        {calculateTotal().toFixed(2)} {currency}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Warranty Text */}
+            {selectedBrand && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>نص الضمان</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={warrantyText}
+                    onChange={(e) => setWarrantyText(e.target.value)}
+                    rows={5}
+                    placeholder="أدخل شروط الضمان..."
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Notes */}
             <Card>
               <CardHeader>
-                <CardTitle>نص الضمان</CardTitle>
+                <CardTitle>ملاحظات</CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  value={warrantyText}
-                  onChange={(e) => setWarrantyText(e.target.value)}
-                  rows={5}
-                  placeholder="أدخل شروط الضمان..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={4}
+                  placeholder="أدخل أي ملاحظات إضافية..."
                 />
               </CardContent>
             </Card>
-          )}
 
-          {/* Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>ملاحظات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                placeholder="أدخل أي ملاحظات إضافية..."
-              />
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => router.push(`/invoices/${id}`)}
-              disabled={saving}
-            >
-              إلغاء
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "جاري الحفظ..." : "حفظ التحديثات"}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex gap-4 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/invoices/${id}`)}
+                disabled={saving}
+              >
+                إلغاء
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "جاري الحفظ..." : "حفظ التحديثات"}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     </ProtectedRoute>
   );
 }

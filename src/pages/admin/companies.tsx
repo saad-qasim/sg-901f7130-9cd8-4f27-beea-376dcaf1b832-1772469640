@@ -173,21 +173,10 @@ export default function AdminCompaniesPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <div className="flex items-center gap-3 mb-4">
-          <HomeButton />
-          <BackButton />
-        </div>
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Company Profiles</h1>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus size={16} className="mr-2" />
-            إضافة شركة جديدة
-          </Button>
-        </div>
-
-        <Card>
+    <ProtectedRoute allowedRoles={['admin']}>
+      <div className="container mx-auto p-6">
+        <BackButton />
+        <Card className="mt-4">
           <CardHeader>
             <CardTitle>All Companies</CardTitle>
           </CardHeader>
