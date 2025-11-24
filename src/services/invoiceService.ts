@@ -400,4 +400,24 @@ export const invoiceService = {
 
     if (error) throw error;
   },
+
+  async getSalesStatistics(startDate?: string, endDate?: string) {
+    const { data, error } = await supabase.rpc('get_sales_statistics', {
+      start_date: startDate,
+      end_date: endDate,
+    });
+
+    if (error) throw error;
+    return data[0];
+  },
+
+  async getInvoicesByBrand(startDate?: string, endDate?: string) {
+    const { data, error } = await supabase.rpc('get_invoices_by_brand', {
+      start_date: startDate,
+      end_date: endDate,
+    });
+
+    if (error) throw error;
+    return data;
+  },
 };

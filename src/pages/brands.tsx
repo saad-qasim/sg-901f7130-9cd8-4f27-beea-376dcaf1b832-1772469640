@@ -47,7 +47,7 @@ export default function BrandsPage() {
 
   const loadBrands = async () => {
     try {
-      const data = await brandService.getBrands();
+      const data = await brandService.getAllBrands();
       setBrands(data);
     } catch (error) {
       console.error("Error loading brands:", error);

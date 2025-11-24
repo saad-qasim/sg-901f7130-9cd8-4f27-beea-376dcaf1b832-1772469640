@@ -332,7 +332,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_invoices_by_brand: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          brand_name: string
+          invoice_count: number
+          total_sales_iqd: number
+          total_sales_usd: number
+        }[]
+      }
+      get_sales_statistics: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          avgInvoiceValueIQD: number
+          avgInvoiceValueUSD: number
+          totalInvoices: number
+          totalSalesIQD: number
+          totalSalesUSD: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

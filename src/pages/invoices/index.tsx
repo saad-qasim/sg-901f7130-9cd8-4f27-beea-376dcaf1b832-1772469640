@@ -44,7 +44,7 @@ export default function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
-      const data = await invoiceService.getInvoices();
+      const data = await invoiceService.getAllInvoices();
       setInvoices(data);
       setFilteredInvoices(data);
     } catch (error) {

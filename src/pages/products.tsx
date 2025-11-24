@@ -53,7 +53,7 @@ export default function ProductsPage() {
 
   const loadProducts = async () => {
     try {
-      const data = await productService.getProducts();
+      const data = await productService.getAllProducts();
       setProducts(data);
     } catch (error) {
       console.error("Error loading products:", error);
@@ -63,7 +63,7 @@ export default function ProductsPage() {
 
   const loadBrands = async () => {
     try {
-      const data = await brandService.getBrands();
+      const data = await brandService.getAllBrands();
       setBrands(data);
     } catch (error) {
       console.error("Error loading brands:", error);

@@ -56,5 +56,25 @@ export const brandService = {
 
     if (error) throw error;
     return true;
+  },
+
+  async uploadLogo(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `public/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('logos')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('logos')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   }
 };
