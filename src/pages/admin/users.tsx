@@ -45,7 +45,11 @@ import {
 
 type PermissionKey = 
   | "can_create_invoices"
-  | "can_edit_invoices";
+  | "can_delete_invoices"
+  | "can_edit_invoices"
+  | "can_add_brand"
+  | "can_add_product"
+  | "can_view_stats";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<ProfileWithEmail[]>([]);
@@ -66,7 +70,11 @@ export default function AdminUsersPage() {
     phone: "",
     role: "",
     can_create_invoices: false,
+    can_delete_invoices: false,
     can_edit_invoices: false,
+    can_add_brand: false,
+    can_add_product: false,
+    can_view_stats: false,
   });
 
   // Create form state
@@ -78,7 +86,11 @@ export default function AdminUsersPage() {
     confirmPassword: "",
     role: "viewer",
     can_create_invoices: false,
+    can_delete_invoices: false,
     can_edit_invoices: false,
+    can_add_brand: false,
+    can_add_product: false,
+    can_view_stats: false,
   });
 
   useEffect(() => {
@@ -105,7 +117,11 @@ export default function AdminUsersPage() {
       phone: user.phone || "",
       role: user.role || "viewer",
       can_create_invoices: user.can_create_invoices ?? false,
+      can_delete_invoices: user.can_delete_invoices ?? false,
       can_edit_invoices: user.can_edit_invoices ?? false,
+      can_add_brand: user.can_add_brand ?? false,
+      can_add_product: user.can_add_product ?? false,
+      can_view_stats: user.can_view_stats ?? false,
     });
     setShowEditDialog(true);
     setSuccessMessage("");
@@ -117,15 +133,7 @@ export default function AdminUsersPage() {
 
     try {
       setSaving(true);
-      // تعيين الصلاحيات المحظورة إلى false دائمًا
-      const updates = {
-        ...editForm,
-        can_delete_invoices: false,
-        can_add_brand: false,
-        can_add_product: false,
-        can_view_stats: false,
-      };
-      await userService.updateProfile(selectedUser.id, updates);
+      await userService.updateProfile(selectedUser.id, editForm);
       setSuccessMessage("تم تحديث بيانات الموظف بنجاح");
       setShowEditDialog(false);
       await loadUsers();
@@ -146,7 +154,11 @@ export default function AdminUsersPage() {
       confirmPassword: "",
       role: "viewer",
       can_create_invoices: false,
+      can_delete_invoices: false,
       can_edit_invoices: false,
+      can_add_brand: false,
+      can_add_product: false,
+      can_view_stats: false,
     });
     setShowCreateDialog(true);
     setSuccessMessage("");
@@ -189,12 +201,11 @@ export default function AdminUsersPage() {
             phone: createForm.phone,
             role: createForm.role,
             can_create_invoices: createForm.can_create_invoices,
+            can_delete_invoices: createForm.can_delete_invoices,
             can_edit_invoices: createForm.can_edit_invoices,
-            // تعيين الصلاحيات المحظورة إلى false دائمًا
-            can_delete_invoices: false,
-            can_add_brand: false,
-            can_add_product: false,
-            can_view_stats: false,
+            can_add_brand: createForm.can_add_brand,
+            can_add_product: createForm.can_add_product,
+            can_view_stats: createForm.can_view_stats,
           },
         }),
       });
@@ -300,7 +311,11 @@ export default function AdminUsersPage() {
                   <TableHead>رقم الهاتف</TableHead>
                   <TableHead>الدور</TableHead>
                   <TableHead className="text-center">إنشاء فواتير</TableHead>
+                  <TableHead className="text-center">حذف فواتير</TableHead>
                   <TableHead className="text-center">تعديل فواتير</TableHead>
+                  <TableHead className="text-center">إضافة علامة</TableHead>
+                  <TableHead className="text-center">إضافة منتج</TableHead>
+                  <TableHead className="text-center">عرض إحصائيات</TableHead>
                   <TableHead>إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -323,7 +338,35 @@ export default function AdminUsersPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-center">
+                      {user.can_delete_invoices ? (
+                        <CheckCircle2 size={16} className="inline text-green-600" />
+                      ) : (
+                        <XCircle size={16} className="inline text-gray-300" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
                       {user.can_edit_invoices ? (
+                        <CheckCircle2 size={16} className="inline text-green-600" />
+                      ) : (
+                        <XCircle size={16} className="inline text-gray-300" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.can_add_brand ? (
+                        <CheckCircle2 size={16} className="inline text-green-600" />
+                      ) : (
+                        <XCircle size={16} className="inline text-gray-300" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.can_add_product ? (
+                        <CheckCircle2 size={16} className="inline text-green-600" />
+                      ) : (
+                        <XCircle size={16} className="inline text-gray-300" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.can_view_stats ? (
                         <CheckCircle2 size={16} className="inline text-green-600" />
                       ) : (
                         <XCircle size={16} className="inline text-gray-300" />
@@ -423,6 +466,19 @@ export default function AdminUsersPage() {
 
                 <div className="flex items-center space-x-2 space-x-reverse">
                   <Checkbox
+                    id="edit-can_delete_invoices"
+                    checked={editForm.can_delete_invoices}
+                    onCheckedChange={(checked) => 
+                      updateEditPermission("can_delete_invoices", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="edit-can_delete_invoices" className="cursor-pointer">
+                    حذف فواتير
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
                     id="edit-can_edit_invoices"
                     checked={editForm.can_edit_invoices}
                     onCheckedChange={(checked) => 
@@ -431,6 +487,45 @@ export default function AdminUsersPage() {
                   />
                   <Label htmlFor="edit-can_edit_invoices" className="cursor-pointer">
                     تعديل فواتير
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="edit-can_add_brand"
+                    checked={editForm.can_add_brand}
+                    onCheckedChange={(checked) => 
+                      updateEditPermission("can_add_brand", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="edit-can_add_brand" className="cursor-pointer">
+                    إضافة علامة تجارية
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="edit-can_add_product"
+                    checked={editForm.can_add_product}
+                    onCheckedChange={(checked) => 
+                      updateEditPermission("can_add_product", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="edit-can_add_product" className="cursor-pointer">
+                    إضافة منتج
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="edit-can_view_stats"
+                    checked={editForm.can_view_stats}
+                    onCheckedChange={(checked) => 
+                      updateEditPermission("can_view_stats", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="edit-can_view_stats" className="cursor-pointer">
+                    عرض الإحصائيات
                   </Label>
                 </div>
               </div>
@@ -563,6 +658,20 @@ export default function AdminUsersPage() {
 
                 <div className="flex items-center space-x-2 space-x-reverse">
                   <Checkbox
+                    id="create-can_delete_invoices"
+                    checked={createForm.can_delete_invoices}
+                    onCheckedChange={(checked) => 
+                      updateCreatePermission("can_delete_invoices", checked as boolean)
+                    }
+                    disabled={saving}
+                  />
+                  <Label htmlFor="create-can_delete_invoices" className="cursor-pointer">
+                    حذف فواتير
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
                     id="create-can_edit_invoices"
                     checked={createForm.can_edit_invoices}
                     onCheckedChange={(checked) => 
@@ -572,6 +681,48 @@ export default function AdminUsersPage() {
                   />
                   <Label htmlFor="create-can_edit_invoices" className="cursor-pointer">
                     تعديل فواتير
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="create-can_add_brand"
+                    checked={createForm.can_add_brand}
+                    onCheckedChange={(checked) => 
+                      updateCreatePermission("can_add_brand", checked as boolean)
+                    }
+                    disabled={saving}
+                  />
+                  <Label htmlFor="create-can_add_brand" className="cursor-pointer">
+                    إضافة علامة تجارية
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="create-can_add_product"
+                    checked={createForm.can_add_product}
+                    onCheckedChange={(checked) => 
+                      updateCreatePermission("can_add_product", checked as boolean)
+                    }
+                    disabled={saving}
+                  />
+                  <Label htmlFor="create-can_add_product" className="cursor-pointer">
+                    إضافة منتج
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="create-can_view_stats"
+                    checked={createForm.can_view_stats}
+                    onCheckedChange={(checked) => 
+                      updateCreatePermission("can_view_stats", checked as boolean)
+                    }
+                    disabled={saving}
+                  />
+                  <Label htmlFor="create-can_view_stats" className="cursor-pointer">
+                    عرض الإحصائيات
                   </Label>
                 </div>
               </div>

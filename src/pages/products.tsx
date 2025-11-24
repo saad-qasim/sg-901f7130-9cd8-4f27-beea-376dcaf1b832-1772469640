@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { useAuth } from "@/contexts/AuthContext";
 import { productService, ProductWithBrand } from "@/services/productService";
 import { brandService } from "@/services/brandService";
 import { Database } from "@/integrations/supabase/types";
@@ -39,8 +37,6 @@ type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 
 export default function ProductsPage() {
-  const router = useRouter();
-  const { user } = useAuth();
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,20 +55,9 @@ export default function ProductsPage() {
     low_stock_threshold: 0,
   });
 
-  // التحقق من الصلاحيات
-  const isAdmin = user?.role === "admin";
-  const canAddProduct = user?.can_add_product ?? false;
-
   useEffect(() => {
-    // إذا لم يكن لدى المستخدم صلاحية، توجيهه إلى الصفحة الرئيسية
-    if (!isAdmin && !canAddProduct) {
-      alert("⛔ ليس لديك صلاحية للوصول إلى هذه الصفحة");
-      router.push("/");
-      return;
-    }
-    
     loadData();
-  }, [isAdmin, canAddProduct]);
+  }, []);
 
   const loadData = async () => {
     try {

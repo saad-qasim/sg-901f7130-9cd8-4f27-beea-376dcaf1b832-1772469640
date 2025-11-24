@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,8 +41,6 @@ interface ReportStats {
 }
 
 export default function Reports() {
-  const router = useRouter();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ReportStats>({
     totalInvoices: 0,
@@ -74,20 +70,9 @@ export default function Reports() {
   const [endDate, setEndDate] = useState(getDefaultEndDate());
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
 
-  // التحقق من الصلاحيات
-  const isAdmin = user?.role === "admin";
-  const canViewStats = user?.can_view_stats ?? false;
-
   useEffect(() => {
-    // إذا لم يكن لدى المستخدم صلاحية، توجيهه إلى الصفحة الرئيسية
-    if (!isAdmin && !canViewStats) {
-      alert("⛔ ليس لديك صلاحية للوصول إلى هذه الصفحة");
-      router.push("/");
-      return;
-    }
-    
     loadReportData();
-  }, [isAdmin, canViewStats]);
+  }, []);
 
   const loadReportData = async () => {
     try {
