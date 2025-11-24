@@ -6,6 +6,18 @@ import { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
+export interface User extends SupabaseUser {
+  name: string | null;
+  phone: string | null;
+  role: string | null;
+  can_create_invoices: boolean;
+  can_edit_invoices: boolean;
+  can_delete_invoices: boolean;
+  can_add_brand: boolean;
+  can_add_product: boolean;
+  can_view_stats: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;

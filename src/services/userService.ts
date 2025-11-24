@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
 import { createClient } from "@supabase/supabase-js";
 
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 // Define an explicit type for Profile, as the auto-generated one is out of sync.
@@ -19,11 +21,15 @@ export interface AppProfile {
   can_view_stats: boolean | null;
 }
 
-export interface ProfileWithEmail extends AppProfile {
-  email: string | null;
+export interface ProfileWithEmail extends Profile {
+  email: string | undefined;
+  can_delete_invoices: boolean;
+  can_add_brand: boolean;
+  can_add_product: boolean;
+  can_view_stats: boolean;
 }
 
-export interface CreateUserData {
+export type CreateUserData = {
   name: string;
   email: string;
   phone: string;
