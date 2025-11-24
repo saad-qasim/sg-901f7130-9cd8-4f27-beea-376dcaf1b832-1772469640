@@ -1,148 +1,77 @@
-
-import React, { useMemo, useCallback } from "react";
+import React from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LogoutButton from "@/components/LogoutButton";
-import { useAuth, User } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   FileText, 
+  List,
   Building2,
   Users, 
   Search,
   BarChart3,
-  Package,
-  UserCircle,
-  LucideProps,
-  Home as HomeIcon
+  Plus,
+  User
 } from "lucide-react";
-import { ForwardRefExoticComponent, RefAttributes } from "react";
-
-// Define a type for the card icon
-type CardIcon = ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
-
-interface DashboardCard {
-  title: string;
-  description: string;
-  icon: CardIcon;
-  href: string;
-  show: boolean;
-  color: string;
-}
 
 export default function Home() {
   const router = useRouter();
-  const { user, loading } = useAuth();
 
-  // Memoize hasAccess function to prevent recreation on every render
-  const hasAccess = useCallback((permission: keyof User) => {
-    if (!user) return false;
-    // Admins and managers have access to everything
-    if (user.role === 'admin' || user.role === 'manager') return true;
-    // Check for specific permission for other roles
-    return !!user[permission];
-  }, [user]);
-
-  // Memoize the dashboard cards with stable dependencies
-  const dashboardCards = useMemo<DashboardCard[]>(() => {
-    if (!user) return [];
-    
-    return [
-      {
-        title: "الفواتير",
-        description: "إدارة الفواتير وإنشاء فواتير جديدة",
-        icon: FileText,
-        href: "/invoices",
-        show: hasAccess('can_create_invoices') || hasAccess('can_edit_invoices'),
-        color: "bg-gradient-to-br from-blue-500 to-blue-600",
-      },
-      {
-        title: "المنتجات",
-        description: "إدارة المنتجات وأسعارها",
-        icon: Package,
-        href: "/products",
-        show: hasAccess('can_add_product'),
-        color: "bg-gradient-to-br from-orange-500 to-orange-600",
-      },
-      {
-        title: "العملاء",
-        description: "إدارة بيانات العملاء",
-        icon: Users,
-        href: "/customers",
-        show: true, // All users can access customers
-        color: "bg-gradient-to-br from-green-500 to-green-600",
-      },
-      {
-        title: "العلامات التجارية",
-        description: "إدارة العلامات التجارية والضمانات",
-        icon: Building2,
-        href: "/brands",
-        show: hasAccess('can_add_brand'),
-        color: "bg-gradient-to-br from-purple-500 to-purple-600",
-      },
-      {
-        title: "البحث عن رقم تسلسلي",
-        description: "البحث عن فاتورة برقم تسلسلي الجهاز",
-        icon: Search,
-        href: "/search-serial",
-        show: true, // All users can search serials
-        color: "bg-gradient-to-br from-yellow-500 to-yellow-600",
-      },
-      {
-        title: "إحصائيات المبيعات",
-        description: "عرض تقارير وإحصائيات المبيعات",
-        icon: BarChart3,
-        href: "/reports",
-        show: hasAccess('can_view_stats'),
-        color: "bg-gradient-to-br from-red-500 to-red-600",
-      },
-      {
-        title: "الملف الشخصي",
-        description: "إعدادات الحساب وتغيير كلمة المرور",
-        icon: UserCircle,
-        href: "/admin/profile",
-        show: true, // All users can access their profile
-        color: "bg-gradient-to-br from-gray-500 to-gray-600",
-      },
-      {
-        title: "إدارة المستخدمين",
-        description: "إدارة الموظفين وصلاحياتهم",
-        icon: Users,
-        href: "/admin/users",
-        show: user.role === 'admin' || user.role === 'manager',
-        color: "bg-gradient-to-br from-indigo-500 to-indigo-600",
-      },
-      {
-        title: "إعدادات الشركة",
-        description: "إدارة معلومات الشركة وإعدادات الفواتير",
-        icon: HomeIcon,
-        href: "/admin/companies",
-        show: user.role === 'admin',
-        color: "bg-gradient-to-br from-cyan-500 to-cyan-600",
-      },
-    ];
-  }, [user, hasAccess]);
-
-  // Filter cards for display - memoize this separately
-  const visibleCards = useMemo(() => {
-    return dashboardCards.filter(card => card.show);
-  }, [dashboardCards]);
-
-  // While loading, show a placeholder
-  if (loading || !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
+  const dashboardCards = [
+    {
+      title: "إنشاء فاتورة جديدة",
+      description: "إنشاء فاتورة جديدة للعملاء مع إضافة المنتجات والأسعار",
+      icon: Plus,
+      href: "/invoices/new",
+      color: "bg-gradient-to-br from-blue-500 to-blue-600"
+    },
+    {
+      title: "قائمة الفواتير",
+      description: "عرض وإدارة جميع الفواتير المسجلة في النظام",
+      icon: List,
+      href: "/invoices",
+      color: "bg-gradient-to-br from-purple-500 to-purple-600"
+    },
+    {
+      title: "إدارة الشركات",
+      description: "إضافة وتعديل بيانات الشركات المصدرة للفواتير",
+      icon: Building2,
+      href: "/admin/companies",
+      color: "bg-gradient-to-br from-green-500 to-green-600"
+    },
+    {
+      title: "إدارة الموظفين",
+      description: "إدارة حسابات الموظفين وصلاحيات الوصول",
+      icon: Users,
+      href: "/admin/users",
+      color: "bg-gradient-to-br from-orange-500 to-orange-600"
+    },
+    {
+      title: "الملف الشخصي",
+      description: "عرض وتعديل معلومات حسابك وإدارة كلمة المرور",
+      icon: User,
+      href: "/admin/profile",
+      color: "bg-gradient-to-br from-indigo-500 to-indigo-600"
+    },
+    {
+      title: "البحث برقم السيريال",
+      description: "البحث عن معلومات الضمان والفواتير باستخدام رقم الجهاز",
+      icon: Search,
+      href: "/search-serial",
+      color: "bg-gradient-to-br from-pink-500 to-pink-600"
+    },
+    {
+      title: "إحصائيات المبيعات",
+      description: "عرض تقارير وإحصائيات المبيعات والإيرادات",
+      icon: BarChart3,
+      href: "/reports",
+      color: "bg-gradient-to-br from-cyan-500 to-cyan-600"
+    }
+  ];
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
+    <ProtectedRoute>
       <Head>
         <title>لوحة التحكم الرئيسية - Invoice PRO</title>
         <meta name="description" content="نظام إدارة الفواتير والمبيعات" />
@@ -152,10 +81,7 @@ export default function Home() {
       <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="container mx-auto px-4 py-8 md:py-12">
           {/* Header Section with Logout Button */}
-          <div className="flex justify-between items-center mb-4">
-             <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200">
-                مرحباً, {user.name || user.email}
-              </h2>
+          <div className="flex justify-end mb-4">
             <LogoutButton />
           </div>
 
@@ -171,15 +97,15 @@ export default function Home() {
 
           {/* Dashboard Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-            {visibleCards.map((card) => {
-              const Icon = card.icon as CardIcon;
+            {dashboardCards.map((card) => {
+              const Icon = card.icon;
               return (
                 <Card 
                   key={card.href}
                   className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 hover:border-primary/30 hover:-translate-y-1 overflow-hidden"
                   onClick={() => router.push(card.href)}
                 >
-                  <div className={`h-2 ${card.color}`} />
+                  <div className={`h-2 ${card.color.replace('from-', 'bg-').replace('to-', '').split(' ')[0]}`} />
                   <CardHeader className="pb-4">
                     <div className="flex items-start gap-4">
                       <div className={`p-3 rounded-xl ${card.color} text-white shadow-lg group-hover:scale-110 transition-transform`}>
@@ -228,24 +154,20 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-                  {hasAccess('can_add_brand') && (
-                    <button
-                      onClick={() => router.push("/brands")}
-                      className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                      <div className="text-3xl">🏷️</div>
-                      <div className="text-sm font-medium text-center">العلامات التجارية</div>
-                    </button>
-                  )}
-                  {hasAccess('can_add_product') && (
-                    <button
-                      onClick={() => router.push("/products")}
-                      className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                      <div className="text-3xl">📦</div>
-                      <div className="text-sm font-medium text-center">المنتجات</div>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => router.push("/brands")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">🏷️</div>
+                    <div className="text-sm font-medium text-center">العلامات التجارية</div>
+                  </button>
+                  <button
+                    onClick={() => router.push("/products")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">📦</div>
+                    <div className="text-sm font-medium text-center">المنتجات</div>
+                  </button>
                   <button
                     onClick={() => router.push("/customers")}
                     className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
@@ -253,15 +175,13 @@ export default function Home() {
                     <div className="text-3xl">👥</div>
                     <div className="text-sm font-medium text-center">العملاء</div>
                   </button>
-                  {hasAccess('can_create_invoices') && (
-                    <button
-                      onClick={() => router.push("/invoices/new")}
-                      className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                      <div className="text-3xl">✨</div>
-                      <div className="text-sm font-medium text-center">فاتورة جديدة</div>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => router.push("/invoices/new")}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="text-3xl">✨</div>
+                    <div className="text-sm font-medium text-center">فاتورة جديدة</div>
+                  </button>
                 </div>
               </CardContent>
             </Card>

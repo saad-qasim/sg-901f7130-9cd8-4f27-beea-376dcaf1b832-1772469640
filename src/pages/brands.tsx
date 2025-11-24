@@ -25,16 +25,11 @@ import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useRouter } from "next/router";
-import { useAuth } from "@/contexts/AuthContext";
-import Head from "next/head";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
 
 export default function BrandsPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,18 +42,9 @@ export default function BrandsPage() {
     warranty_default_text: "",
   });
 
-  // Check permissions
   useEffect(() => {
-    if (!authLoading && user) {
-      const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_brand;
-      if (!hasAccess) {
-        alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
-        router.push("/");
-      } else {
-        loadBrands();
-      }
-    }
-  }, [user, authLoading, router]);
+    loadBrands();
+  }, []);
 
   const loadBrands = async () => {
     try {
@@ -179,19 +165,8 @@ export default function BrandsPage() {
     setLogoPreview("");
   };
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>جاري التحميل...</p>
-      </div>
-    );
-  }
-
   return (
-    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
-      <Head>
-        <title>العلامات التجارية - Invoice PRO</title>
-      </Head>
+    <ProtectedRoute>
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center gap-3 mb-4">
           <HomeButton />
