@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+
+import React, { useMemo, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -21,22 +22,31 @@ import { ForwardRefExoticComponent, RefAttributes } from "react";
 // Define a type for the card icon
 type CardIcon = ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
 
+interface DashboardCard {
+  title: string;
+  description: string;
+  icon: CardIcon;
+  href: string;
+  show: boolean;
+  color: string;
+}
+
 export default function Home() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  // Helper function to check permissions, ensuring it returns false if user is not loaded
-  const hasAccess = (permission: keyof User) => {
+  // Memoize hasAccess function to prevent recreation on every render
+  const hasAccess = useCallback((permission: keyof User) => {
     if (!user) return false;
     // Admins and managers have access to everything
     if (user.role === 'admin' || user.role === 'manager') return true;
     // Check for specific permission for other roles
     return !!user[permission];
-  };
+  }, [user]);
 
-  // Memoize the dashboard cards to prevent re-creation on every render, depends on user object
-  const dashboardCards = useMemo(() => {
-    if (!user) return []; // Return empty array if user is not loaded
+  // Memoize the dashboard cards with stable dependencies
+  const dashboardCards = useMemo<DashboardCard[]>(() => {
+    if (!user) return [];
     
     return [
       {
@@ -112,7 +122,12 @@ export default function Home() {
         color: "bg-gradient-to-br from-cyan-500 to-cyan-600",
       },
     ];
-  }, [user]);
+  }, [user, hasAccess]);
+
+  // Filter cards for display - memoize this separately
+  const visibleCards = useMemo(() => {
+    return dashboardCards.filter(card => card.show);
+  }, [dashboardCards]);
 
   // While loading, show a placeholder
   if (loading || !user) {
@@ -156,7 +171,7 @@ export default function Home() {
 
           {/* Dashboard Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-            {dashboardCards.filter(card => card.show).map((card) => {
+            {visibleCards.map((card) => {
               const Icon = card.icon as CardIcon;
               return (
                 <Card 
