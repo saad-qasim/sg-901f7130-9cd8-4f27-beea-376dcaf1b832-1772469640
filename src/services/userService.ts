@@ -1,32 +1,11 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
-import { createClient } from "@supabase/supabase-js";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
-// Define an explicit type for Profile, as the auto-generated one is out of sync.
-export interface AppProfile {
-  id: string;
-  created_at: string;
-  name: string | null;
-  phone: string | null;
-  role: string | null;
-  can_create_invoices: boolean | null;
-  can_delete_invoices: boolean | null;
-  can_edit_invoices: boolean | null;
-  can_add_brand: boolean | null;
-  can_add_product: boolean | null;
-  can_view_stats: boolean | null;
-}
-
 export interface ProfileWithEmail extends Profile {
-  email: string | undefined;
-  can_delete_invoices: boolean;
-  can_add_brand: boolean;
-  can_add_product: boolean;
-  can_view_stats: boolean;
+  email?: string | null;
 }
 
 export type CreateUserData = {
@@ -53,7 +32,7 @@ export const userService = {
     if (!profiles || profiles.length === 0) return [];
 
     // Cast the data to our correct, manually defined type.
-    const typedProfiles = profiles as AppProfile[];
+    const typedProfiles = profiles as Profile[];
 
     // Fetch user emails from server-side API route
     try {
@@ -76,7 +55,7 @@ export const userService = {
 
       const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
         ...profile,
-        email: emailMap.get(profile.id) ?? null,
+        email: emailMap.get(profile.id),
       }));
       
       return profilesWithEmails;
@@ -89,7 +68,7 @@ export const userService = {
     }
   },
 
-  async updateProfile(id: string, updates: ProfileUpdate): Promise<AppProfile> {
+  async updateProfile(id: string, updates: ProfileUpdate): Promise<Profile> {
     const { data, error } = await supabase
       .from("profiles")
       .update(updates)
@@ -98,7 +77,7 @@ export const userService = {
       .single();
 
     if (error) throw error;
-    return data as AppProfile;
+    return data;
   },
 
   async createUser(userData: CreateUserData): Promise<{ userId: string; temporaryPassword: string }> {
