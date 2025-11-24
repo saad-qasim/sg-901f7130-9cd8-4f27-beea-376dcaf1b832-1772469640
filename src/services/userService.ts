@@ -4,10 +4,6 @@ import { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
-export interface ProfileWithEmail extends Profile {
-  email?: string | null;
-}
-
 export type CreateUserData = {
   name: string;
   email: string;
@@ -22,7 +18,7 @@ export type CreateUserData = {
 }
 
 export const userService = {
-  async getAllProfiles(): Promise<ProfileWithEmail[]> {
+  async getAllProfiles(): Promise<Profile[]> {
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
@@ -53,7 +49,7 @@ export const userService = {
           .map((u: any) => [u.id, u.email as string])
       );
 
-      const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
+      const profilesWithEmails: Profile[] = typedProfiles.map(profile => ({
         ...profile,
         email: emailMap.get(profile.id),
       }));
