@@ -11,6 +11,7 @@ import { BarChart3, TrendingUp, DollarSign, FileText, Printer, Package, CheckCir
 import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useRouter } from "next/router";
 
 interface Invoice {
   id: string;
@@ -69,6 +70,19 @@ export default function Reports() {
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(getDefaultEndDate());
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
+
+  const router = useRouter();
+
+  // Check permissions
+  useEffect(() => {
+    if (!loading && user) {
+      const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_view_stats;
+      if (!hasAccess) {
+        alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+        router.push("/");
+      }
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     loadReportData();

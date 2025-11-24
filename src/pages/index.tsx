@@ -12,7 +12,9 @@ import {
   Search,
   BarChart3,
   Plus,
-  User
+  User,
+  Package,
+  UserCircle
 } from "lucide-react";
 
 export default function Home() {
@@ -20,54 +22,54 @@ export default function Home() {
 
   const dashboardCards = [
     {
-      title: "إنشاء فاتورة جديدة",
-      description: "إنشاء فاتورة جديدة للعملاء مع إضافة المنتجات والأسعار",
-      icon: Plus,
-      href: "/invoices/new",
-      color: "bg-gradient-to-br from-blue-500 to-blue-600"
-    },
-    {
-      title: "قائمة الفواتير",
-      description: "عرض وإدارة جميع الفواتير المسجلة في النظام",
-      icon: List,
+      title: "الفواتير",
+      description: "إدارة الفواتير وإنشاء فواتير جديدة",
+      icon: FileText,
       href: "/invoices",
-      color: "bg-gradient-to-br from-purple-500 to-purple-600"
+      show: hasAccess('can_create_invoices') || hasAccess('can_edit_invoices'),
     },
     {
-      title: "إدارة الشركات",
-      description: "إضافة وتعديل بيانات الشركات المصدرة للفواتير",
-      icon: Building2,
-      href: "/admin/companies",
-      color: "bg-gradient-to-br from-green-500 to-green-600"
+      title: "المنتجات",
+      description: "إدارة المنتجات وأسعارها",
+      icon: Package,
+      href: "/products",
+      show: user.role === 'admin' || user.role === 'manager' || user.can_add_product,
     },
     {
-      title: "إدارة الموظفين",
-      description: "إدارة حسابات الموظفين وصلاحيات الوصول",
+      title: "العملاء",
+      description: "إدارة بيانات العملاء",
       icon: Users,
-      href: "/admin/users",
-      color: "bg-gradient-to-br from-orange-500 to-orange-600"
+      href: "/customers",
+      show: true, // All users can access customers
     },
     {
-      title: "الملف الشخصي",
-      description: "عرض وتعديل معلومات حسابك وإدارة كلمة المرور",
-      icon: User,
-      href: "/admin/profile",
-      color: "bg-gradient-to-br from-indigo-500 to-indigo-600"
+      title: "العلامات التجارية",
+      description: "إدارة العلامات التجارية والضمانات",
+      icon: Building2,
+      href: "/brands",
+      show: user.role === 'admin' || user.role === 'manager' || user.can_add_brand,
     },
     {
-      title: "البحث برقم السيريال",
-      description: "البحث عن معلومات الضمان والفواتير باستخدام رقم الجهاز",
+      title: "البحث عن رقم تسلسلي",
+      description: "البحث عن فاتورة برقم تسلسلي الجهاز",
       icon: Search,
       href: "/search-serial",
-      color: "bg-gradient-to-br from-pink-500 to-pink-600"
+      show: true, // All users can search serials
     },
     {
       title: "إحصائيات المبيعات",
-      description: "عرض تقارير وإحصائيات المبيعات والإيرادات",
+      description: "عرض تقارير وإحصائيات المبيعات",
       icon: BarChart3,
       href: "/reports",
-      color: "bg-gradient-to-br from-cyan-500 to-cyan-600"
-    }
+      show: user.role === 'admin' || user.role === 'manager' || user.can_view_stats,
+    },
+    {
+      title: "الملف الشخصي",
+      description: "إعدادات الحساب وتغيير كلمة المرور",
+      icon: UserCircle,
+      href: "/admin/profile",
+      show: true, // All users can access their profile
+    },
   ];
 
   return (

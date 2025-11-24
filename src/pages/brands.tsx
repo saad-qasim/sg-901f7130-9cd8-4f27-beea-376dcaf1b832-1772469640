@@ -25,6 +25,7 @@ import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useRouter } from "next/router";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
@@ -41,6 +42,18 @@ export default function BrandsPage() {
     logo_url: "",
     warranty_default_text: "",
   });
+  const router = useRouter();
+
+  // Check permissions
+  useEffect(() => {
+    if (!loading && user) {
+      const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_brand;
+      if (!hasAccess) {
+        alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+        router.push("/");
+      }
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     loadBrands();

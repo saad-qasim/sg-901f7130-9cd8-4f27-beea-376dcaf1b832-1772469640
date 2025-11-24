@@ -59,6 +59,17 @@ export default function ProductsPage() {
     loadData();
   }, []);
 
+  // Check permissions
+  useEffect(() => {
+    if (!loading && user) {
+      const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_product;
+      if (!hasAccess) {
+        alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+        router.push("/");
+      }
+    }
+  }, [user, loading, router]);
+
   const loadData = async () => {
     try {
       setLoading(true);

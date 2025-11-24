@@ -153,9 +153,10 @@ export default function AdminUsersPage() {
       password: "",
       confirmPassword: "",
       role: "viewer",
-      can_create_invoices: false,
+      // القيم الافتراضية للصلاحيات عند إضافة موظف جديد
+      can_create_invoices: true,
+      can_edit_invoices: true,
       can_delete_invoices: false,
-      can_edit_invoices: false,
       can_add_brand: false,
       can_add_product: false,
       can_view_stats: false,
@@ -188,6 +189,10 @@ export default function AdminUsersPage() {
 
     try {
       setSaving(true);
+      
+      // تحديد الصلاحيات الافتراضية بناءً على الدور
+      const isAdmin = createForm.role === 'admin';
+      
       const response = await fetch("/api/admin/create-user", {
         method: "POST",
         headers: {
@@ -200,12 +205,14 @@ export default function AdminUsersPage() {
             name: createForm.name,
             phone: createForm.phone,
             role: createForm.role,
-            can_create_invoices: createForm.can_create_invoices,
-            can_delete_invoices: createForm.can_delete_invoices,
-            can_edit_invoices: createForm.can_edit_invoices,
-            can_add_brand: createForm.can_add_brand,
-            can_add_product: createForm.can_add_product,
-            can_view_stats: createForm.can_view_stats,
+            // إذا كان admin، السماح بكل الصلاحيات
+            // وإلا، استخدام الصلاحيات الافتراضية المحدودة
+            can_create_invoices: isAdmin ? true : true,
+            can_edit_invoices: isAdmin ? true : true,
+            can_delete_invoices: isAdmin ? true : false,
+            can_add_brand: isAdmin ? true : false,
+            can_add_product: isAdmin ? true : false,
+            can_view_stats: isAdmin ? true : false,
           },
         }),
       });
