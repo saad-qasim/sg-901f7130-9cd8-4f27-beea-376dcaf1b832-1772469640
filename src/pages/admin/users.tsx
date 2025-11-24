@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { userService, CreateUserData } from "@/services/userService";
+import { userService, ProfileWithEmail, CreateUserData } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,26 +42,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Database } from "@/integrations/supabase/types";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"] & { email?: string | null };
-
-type PermissionKey =
+type PermissionKey = 
   | "can_create_invoices"
-  | "can_edit_invoices"
-  | "can_delete_invoices"
-  | "can_add_brand"
-  | "can_add_product"
-  | "can_view_stats";
+  | "can_edit_invoices";
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<ProfileWithEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<ProfileWithEmail | null>(null);
+  const [userToDelete, setUserToDelete] = useState<ProfileWithEmail | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
@@ -74,10 +67,6 @@ export default function AdminUsersPage() {
     role: "",
     can_create_invoices: false,
     can_edit_invoices: false,
-    can_delete_invoices: false,
-    can_add_brand: false,
-    can_add_product: false,
-    can_view_stats: false,
   });
 
   // Create form state
@@ -90,10 +79,6 @@ export default function AdminUsersPage() {
     role: "viewer",
     can_create_invoices: false,
     can_edit_invoices: false,
-    can_delete_invoices: false,
-    can_add_brand: false,
-    can_add_product: false,
-    can_view_stats: false,
   });
 
   useEffect(() => {
@@ -113,7 +98,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleEditClick = (user: Profile) => {
+  const handleEditClick = (user: ProfileWithEmail) => {
     setSelectedUser(user);
     setEditForm({
       name: user.name || "",
@@ -121,10 +106,6 @@ export default function AdminUsersPage() {
       role: user.role || "viewer",
       can_create_invoices: user.can_create_invoices ?? false,
       can_edit_invoices: user.can_edit_invoices ?? false,
-      can_delete_invoices: user.can_delete_invoices ?? false,
-      can_add_brand: user.can_add_brand ?? false,
-      can_add_product: user.can_add_product ?? false,
-      can_view_stats: user.can_view_stats ?? false,
     });
     setShowEditDialog(true);
     setSuccessMessage("");
@@ -136,7 +117,15 @@ export default function AdminUsersPage() {
 
     try {
       setSaving(true);
-      await userService.updateProfile(selectedUser.id, editForm);
+      // تعيين الصلاحيات المحظورة إلى false دائمًا
+      const updates = {
+        ...editForm,
+        can_delete_invoices: false,
+        can_add_brand: false,
+        can_add_product: false,
+        can_view_stats: false,
+      };
+      await userService.updateProfile(selectedUser.id, updates);
       setSuccessMessage("تم تحديث بيانات الموظف بنجاح");
       setShowEditDialog(false);
       await loadUsers();
@@ -158,10 +147,6 @@ export default function AdminUsersPage() {
       role: "viewer",
       can_create_invoices: false,
       can_edit_invoices: false,
-      can_delete_invoices: false,
-      can_add_brand: false,
-      can_add_product: false,
-      can_view_stats: false,
     });
     setShowCreateDialog(true);
     setSuccessMessage("");
@@ -231,7 +216,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleDeleteClick = (user: Profile) => {
+  const handleDeleteClick = (user: ProfileWithEmail) => {
     setUserToDelete(user);
     setShowDeleteDialog(true);
     setSuccessMessage("");
@@ -266,7 +251,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['admin']}>
+    <ProtectedRoute>
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="flex items-center gap-3 mb-4">
           <HomeButton />
@@ -316,10 +301,6 @@ export default function AdminUsersPage() {
                   <TableHead>الدور</TableHead>
                   <TableHead className="text-center">إنشاء فواتير</TableHead>
                   <TableHead className="text-center">تعديل فواتير</TableHead>
-                  <TableHead className="text-center">حذف فواتير</TableHead>
-                  <TableHead className="text-center">إضافة علامة تجارية</TableHead>
-                  <TableHead className="text-center">إضافة منتج</TableHead>
-                  <TableHead className="text-center">عرض الإحصائيات</TableHead>
                   <TableHead>إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -343,34 +324,6 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       {user.can_edit_invoices ? (
-                        <CheckCircle2 size={16} className="inline text-green-600" />
-                      ) : (
-                        <XCircle size={16} className="inline text-gray-300" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.can_delete_invoices ? (
-                        <CheckCircle2 size={16} className="inline text-green-600" />
-                      ) : (
-                        <XCircle size={16} className="inline text-gray-300" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.can_add_brand ? (
-                        <CheckCircle2 size={16} className="inline text-green-600" />
-                      ) : (
-                        <XCircle size={16} className="inline text-gray-300" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.can_add_product ? (
-                        <CheckCircle2 size={16} className="inline text-green-600" />
-                      ) : (
-                        <XCircle size={16} className="inline text-gray-300" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.can_view_stats ? (
                         <CheckCircle2 size={16} className="inline text-green-600" />
                       ) : (
                         <XCircle size={16} className="inline text-gray-300" />
@@ -478,54 +431,6 @@ export default function AdminUsersPage() {
                   />
                   <Label htmlFor="edit-can_edit_invoices" className="cursor-pointer">
                     تعديل فواتير
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="edit-can_delete_invoices"
-                    checked={editForm.can_delete_invoices}
-                    onCheckedChange={(checked) => 
-                      updateEditPermission("can_delete_invoices", checked as boolean)
-                    }
-                  />
-                  <Label htmlFor="edit-can_delete_invoices" className="cursor-pointer">
-                    حذف فواتير
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="edit-can_add_brand"
-                    checked={editForm.can_add_brand}
-                    onCheckedChange={(checked) => 
-                      updateEditPermission("can_add_brand", checked as boolean)
-                    }
-                  />
-                  <Label htmlFor="edit-can_add_brand" className="cursor-pointer">
-                    إضافة علامة تجارية
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="edit-can_add_product"
-                    checked={editForm.can_add_product}
-                    onCheckedChange={(checked) => 
-                      updateEditPermission("can_add_product", checked as boolean)
-                    }
-                  />
-                  <Label htmlFor="edit-can_add_product" className="cursor-pointer">
-                    إضافة منتج
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="edit-can_view_stats"
-                    checked={editForm.can_view_stats}
-                    onCheckedChange={(checked) => 
-                      updateEditPermission("can_view_stats", checked as boolean)
-                    }
-                  />
-                  <Label htmlFor="edit-can_view_stats" className="cursor-pointer">
-                    عرض الإحصائيات
                   </Label>
                 </div>
               </div>
@@ -667,58 +572,6 @@ export default function AdminUsersPage() {
                   />
                   <Label htmlFor="create-can_edit_invoices" className="cursor-pointer">
                     تعديل فواتير
-                  </Label>
-                </div>
-                 <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="create-can_delete_invoices"
-                    checked={createForm.can_delete_invoices}
-                    onCheckedChange={(checked) => 
-                      updateCreatePermission("can_delete_invoices", checked as boolean)
-                    }
-                    disabled={saving}
-                  />
-                  <Label htmlFor="create-can_delete_invoices" className="cursor-pointer">
-                    حذف فواتير
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="create-can_add_brand"
-                    checked={createForm.can_add_brand}
-                    onCheckedChange={(checked) => 
-                      updateCreatePermission("can_add_brand", checked as boolean)
-                    }
-                    disabled={saving}
-                  />
-                  <Label htmlFor="create-can_add_brand" className="cursor-pointer">
-                    إضافة علامة تجارية
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="create-can_add_product"
-                    checked={createForm.can_add_product}
-                    onCheckedChange={(checked) => 
-                      updateCreatePermission("can_add_product", checked as boolean)
-                    }
-                    disabled={saving}
-                  />
-                  <Label htmlFor="create-can_add_product" className="cursor-pointer">
-                    إضافة منتج
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="create-can_view_stats"
-                    checked={createForm.can_view_stats}
-                    onCheckedChange={(checked) => 
-                      updateCreatePermission("can_view_stats", checked as boolean)
-                    }
-                    disabled={saving}
-                  />
-                  <Label htmlFor="create-can_view_stats" className="cursor-pointer">
-                    عرض الإحصائيات
                   </Label>
                 </div>
               </div>

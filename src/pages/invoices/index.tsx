@@ -13,13 +13,11 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import BackButton from "@/components/BackButton";
 
-type InvoiceForListView = Omit<InvoiceWithRelations, "invoice_items">;
-
 export default function InvoicesPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<InvoiceForListView[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<InvoiceForListView[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceWithRelations[]>([]);
+  const [filteredInvoices, setFilteredInvoices] = useState<InvoiceWithRelations[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -46,7 +44,7 @@ export default function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
-      const data = await invoiceService.getAllInvoices();
+      const data = await invoiceService.getInvoices();
       setInvoices(data);
       setFilteredInvoices(data);
     } catch (error) {

@@ -152,7 +152,7 @@ export default function AdminProfilePage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
+    <ProtectedRoute>
       <>
         <Head>
           <title>الملف الشخصي - Invoice PRO</title>
