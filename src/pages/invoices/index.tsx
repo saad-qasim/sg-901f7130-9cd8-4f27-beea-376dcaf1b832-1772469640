@@ -320,7 +320,6 @@ export default function InvoicesListPage() {
                               size="icon"
                               variant="ghost"
                               onClick={() => handleDeleteClick(invoice.id)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
                               title="Delete invoice"
                               disabled={!canDeleteInvoices}
                               className={!canDeleteInvoices ? "text-gray-400 cursor-not-allowed" : "text-destructive hover:text-destructive hover:bg-destructive/10"}
