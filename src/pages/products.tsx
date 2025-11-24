@@ -32,11 +32,16 @@ import { Pencil, Trash2, Plus } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/router";
+import Head from "next/head";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 
 export default function ProductsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,20 +60,18 @@ export default function ProductsPage() {
     low_stock_threshold: 0,
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   // Check permissions
   useEffect(() => {
-    if (!loading && user) {
+    if (!authLoading && user) {
       const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_product;
       if (!hasAccess) {
         alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
         router.push("/");
+      } else {
+        loadData();
       }
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
   const loadData = async () => {
     try {
@@ -144,8 +147,19 @@ export default function ProductsPage() {
     });
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>جاري التحميل...</p>
+      </div>
+    );
+  }
+
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
+      <Head>
+        <title>المنتجات - Invoice PRO</title>
+      </Head>
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center gap-3 mb-4">
           <HomeButton />

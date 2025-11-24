@@ -12,6 +12,8 @@ import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useRouter } from "next/router";
+import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
 interface Invoice {
   id: string;
@@ -42,6 +44,8 @@ interface ReportStats {
 }
 
 export default function Reports() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ReportStats>({
     totalInvoices: 0,
@@ -71,22 +75,18 @@ export default function Reports() {
   const [endDate, setEndDate] = useState(getDefaultEndDate());
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
 
-  const router = useRouter();
-
   // Check permissions
   useEffect(() => {
-    if (!loading && user) {
+    if (!authLoading && user) {
       const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_view_stats;
       if (!hasAccess) {
         alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
         router.push("/");
+      } else {
+        loadReportData();
       }
     }
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    loadReportData();
-  }, []);
+  }, [user, authLoading, router]);
 
   const loadReportData = async () => {
     try {
@@ -238,8 +238,16 @@ export default function Reports() {
     });
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>جاري التحميل...</p>
+      </div>
+    );
+  }
+
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
       <>
         <Head>
           <title>إحصائيات المبيعات - Invoice PRO</title>

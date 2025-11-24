@@ -26,11 +26,15 @@ import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useRouter } from "next/router";
+import { useAuth } from "@/contexts/AuthContext";
+import Head from "next/head";
 
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
 
 export default function BrandsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,22 +46,19 @@ export default function BrandsPage() {
     logo_url: "",
     warranty_default_text: "",
   });
-  const router = useRouter();
 
   // Check permissions
   useEffect(() => {
-    if (!loading && user) {
+    if (!authLoading && user) {
       const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_brand;
       if (!hasAccess) {
         alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
         router.push("/");
+      } else {
+        loadBrands();
       }
     }
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    loadBrands();
-  }, []);
+  }, [user, authLoading, router]);
 
   const loadBrands = async () => {
     try {
@@ -178,8 +179,19 @@ export default function BrandsPage() {
     setLogoPreview("");
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>جاري التحميل...</p>
+      </div>
+    );
+  }
+
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['admin', 'manager', 'cashier', 'viewer']}>
+      <Head>
+        <title>العلامات التجارية - Invoice PRO</title>
+      </Head>
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center gap-3 mb-4">
           <HomeButton />
