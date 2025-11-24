@@ -1,275 +1,380 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
-import Head from "next/head";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FileText, Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
-import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, Eye, Search, Trash2, Edit } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function InvoicesPage() {
+type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
+
+export default function InvoicesListPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<InvoiceWithRelations[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<InvoiceWithRelations[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // التحقق من الصلاحيات
+  const isAdmin = user?.role === "admin";
+  const canDeleteInvoices = user?.can_delete_invoices ?? false;
+  const canDelete = isAdmin || canDeleteInvoices;
 
   useEffect(() => {
-    if (user) {
-      loadInvoices();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = invoices.filter(
-        (invoice) =>
-          invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          invoice.brands?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredInvoices(filtered);
-    } else {
-      setFilteredInvoices(invoices);
-    }
-  }, [searchTerm, invoices]);
+    loadInvoices();
+  }, []);
 
   const loadInvoices = async () => {
     try {
-      const data = await invoiceService.getInvoices();
+      setLoading(true);
+      const data = await invoiceService.getAllInvoices();
       setInvoices(data);
-      setFilteredInvoices(data);
+      setSelectedInvoices(new Set());
     } catch (error) {
       console.error("Error loading invoices:", error);
-      alert("فشل تحميل الفواتير!");
-    }
-  };
-
-  const handleSelectInvoice = (invoiceId: string) => {
-    setSelectedInvoices((prev) =>
-      prev.includes(invoiceId)
-        ? prev.filter((id) => id !== invoiceId)
-        : [...prev, invoiceId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedInvoices.length === filteredInvoices.length) {
-      setSelectedInvoices([]);
-    } else {
-      setSelectedInvoices(filteredInvoices.map((inv) => inv.id));
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    if (selectedInvoices.length === 0) {
-      alert("الرجاء تحديد فاتورة واحدة على الأقل للحذف");
-      return;
-    }
-
-    if (!confirm(`هل أنت متأكد من حذف ${selectedInvoices.length} فاتورة؟`)) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      await Promise.all(
-        selectedInvoices.map((id) => invoiceService.deleteInvoice(id))
-      );
-      alert("تم حذف الفواتير المحددة بنجاح!");
-      setSelectedInvoices([]);
-      await loadInvoices();
-    } catch (error) {
-      console.error("Error deleting invoices:", error);
-      alert("فشل حذف بعض الفواتير!");
+      alert("Failed to load invoices");
     } finally {
-      setIsDeleting(false);
+      setLoading(false);
     }
   };
 
-  const handleDeleteSingle = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذه الفاتورة؟")) return;
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!searchTerm.trim() || searchTerm.trim().length < 2) {
+      loadInvoices();
+      return;
+    }
 
-    setIsDeleting(true);
     try {
-      await invoiceService.deleteInvoice(id);
-      alert("تم حذف الفاتورة بنجاح!");
+      setSearching(true);
+      const results = await invoiceService.searchInvoices(searchTerm.trim());
+      setInvoices(results);
+      setSelectedInvoices(new Set());
+    } catch (error) {
+      console.error("Error searching invoices:", error);
+      alert("Failed to search invoices. Please try again.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchTerm(value);
+    
+    if (!value.trim()) {
+      loadInvoices();
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedInvoices(new Set(invoices.map(inv => inv.id)));
+    } else {
+      setSelectedInvoices(new Set());
+    }
+  };
+
+  const handleSelectInvoice = (invoiceId: string, checked: boolean) => {
+    const newSelected = new Set(selectedInvoices);
+    if (checked) {
+      newSelected.add(invoiceId);
+    } else {
+      newSelected.delete(invoiceId);
+    }
+    setSelectedInvoices(newSelected);
+  };
+
+  const handleDeleteClick = (invoiceId: string) => {
+    setInvoiceToDelete(invoiceId);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!invoiceToDelete) return;
+
+    try {
+      setDeleting(true);
+      await invoiceService.deleteInvoice(invoiceToDelete);
+      setShowDeleteDialog(false);
+      setInvoiceToDelete(null);
       await loadInvoices();
     } catch (error) {
       console.error("Error deleting invoice:", error);
-      alert("فشل حذف الفاتورة!");
+      alert("حدث خطأ أثناء حذف الفاتورة، حاول مرة أخرى.");
     } finally {
-      setIsDeleting(false);
+      setDeleting(false);
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  const handleBulkDeleteClick = () => {
+    if (selectedInvoices.size === 0) {
+      alert("لم تقم بتحديد أي فاتورة.");
+      return;
+    }
+    setShowBulkDeleteDialog(true);
+  };
 
-  // Check if user can delete invoices
-  const canDeleteInvoices = user.role === 'admin' || user.role === 'manager' || user.can_delete_invoices;
+  const handleBulkDeleteConfirm = async () => {
+    try {
+      setDeleting(true);
+      await invoiceService.deleteInvoices(Array.from(selectedInvoices));
+      setShowBulkDeleteDialog(false);
+      await loadInvoices();
+    } catch (error) {
+      console.error("Error deleting invoices:", error);
+      alert("حدث خطأ أثناء حذف الفاتورة، حاول مرة أخرى.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    if (currency === "USD") {
+      return `$${amount.toFixed(2)}`;
+    }
+    return `${amount.toLocaleString()} IQD`;
+  };
+
+  const allSelected = invoices.length > 0 && selectedInvoices.size === invoices.length;
+  const someSelected = selectedInvoices.size > 0 && selectedInvoices.size < invoices.length;
 
   return (
-    <>
-      <Head>
-        <title>الفواتير - Invoice PRO</title>
-      </Head>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center gap-3 mb-4">
+          <HomeButton />
           <BackButton />
-          <Card className="mt-6">
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-3xl flex items-center gap-2">
-                    <FileText className="h-8 w-8" />
-                    إدارة الفواتير
-                  </CardTitle>
-                  <CardDescription className="text-lg mt-2">
-                    عرض وإدارة جميع الفواتير
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  {canDeleteInvoices && selectedInvoices.length > 0 && (
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteSelected}
-                      disabled={isDeleting}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      حذف المحدد ({selectedInvoices.length})
-                    </Button>
-                  )}
-                  <Button onClick={() => router.push("/invoices/new")}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    فاتورة جديدة
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Search */}
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="البحث برقم الفاتورة، اسم العميل، أو العلامة التجارية..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pr-10"
-                  />
-                </div>
-              </div>
-
-              {/* Invoices Table */}
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {canDeleteInvoices && (
-                        <TableHead className="w-12">
-                          <Checkbox
-                            checked={
-                              filteredInvoices.length > 0 &&
-                              selectedInvoices.length === filteredInvoices.length
-                            }
-                            onCheckedChange={handleSelectAll}
-                          />
-                        </TableHead>
-                      )}
-                      <TableHead>رقم الفاتورة</TableHead>
-                      <TableHead>التاريخ</TableHead>
-                      <TableHead>العميل</TableHead>
-                      <TableHead>العلامة التجارية</TableHead>
-                      <TableHead>العملة</TableHead>
-                      <TableHead className="text-left" dir="ltr">المبلغ الإجمالي</TableHead>
-                      <TableHead className="text-center">الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInvoices.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={canDeleteInvoices ? 8 : 7}
-                          className="text-center text-gray-500 py-8"
-                        >
-                          {searchTerm ? "لا توجد نتائج للبحث" : "لا توجد فواتير حتى الآن"}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredInvoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          {canDeleteInvoices && (
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedInvoices.includes(invoice.id)}
-                                onCheckedChange={() => handleSelectInvoice(invoice.id)}
-                              />
-                            </TableCell>
-                          )}
-                          <TableCell className="font-medium">
-                            {invoice.invoice_number}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(invoice.invoice_date), "dd/MM/yyyy", {
-                              locale: ar,
-                            })}
-                          </TableCell>
-                          <TableCell>{invoice.customers?.name || "غير محدد"}</TableCell>
-                          <TableCell>{invoice.brands?.name || "غير محدد"}</TableCell>
-                          <TableCell>{invoice.currency}</TableCell>
-                          <TableCell className="text-left font-medium" dir="ltr">
-                            {invoice.currency === "IQD"
-                              ? invoice.total.toLocaleString()
-                              : `$${invoice.total.toLocaleString()}`}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex justify-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/invoices/${invoice.id}`)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/invoices/${invoice.id}/edit`)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              {canDeleteInvoices && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteSingle(invoice.id)}
-                                  disabled={isDeleting}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
         </div>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Invoices</h1>
+          <Button
+            className="gap-2"
+            onClick={() => router.push("/invoices/new")}
+          >
+            <Plus size={16} />
+            إنشاء فاتورة جديدة
+          </Button>
+        </div>
+
+        <div className="mb-6">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl">
+            <div className="flex-1">
+              <Label htmlFor="invoice-search" className="sr-only">
+                Search Invoices
+              </Label>
+              <div className="relative">
+                <Search 
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
+                  size={18} 
+                />
+                <Input
+                  id="invoice-search"
+                  placeholder="ابحث بالاسم أو رقم الهاتف أو السيريال نمبر"
+                  value={searchTerm}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
+                  className="pl-10"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={searching || searchTerm.trim().length < 2}>
+              {searching ? "Searching..." : "Search"}
+            </Button>
+          </form>
+          {searchTerm.trim() && searchTerm.trim().length < 2 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Please enter at least 2 characters to search
+            </p>
+          )}
+        </div>
+
+        {canDelete && selectedInvoices.size > 0 && (
+          <div className="mb-4">
+            <Button
+              variant="destructive"
+              onClick={handleBulkDeleteClick}
+              className="gap-2"
+            >
+              <Trash2 size={16} />
+              حذف الفواتير المحددة ({selectedInvoices.size})
+            </Button>
+          </div>
+        )}
+
+        {loading ? (
+          <p>Loading invoices...</p>
+        ) : invoices.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">
+            {searchTerm.trim() 
+              ? `No invoices found matching "${searchTerm}"`
+              : "No invoices yet. Create your first invoice to get started!"}
+          </p>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {canDelete && (
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                        className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    {canDelete && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedInvoices.has(invoice.id)}
+                          onCheckedChange={(checked) => 
+                            handleSelectInvoice(invoice.id, checked as boolean)
+                          }
+                          aria-label={`Select invoice ${invoice.invoice_number}`}
+                        />
+                      </TableCell>
+                    )}
+                    <TableCell className="font-medium">
+                      {invoice.invoice_number}
+                    </TableCell>
+                    <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
+                    <TableCell>{invoice.customers?.name || "—"}</TableCell>
+                    <TableCell>{invoice.brands?.name || "—"}</TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(invoice.total, invoice.currency)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => router.push(`/invoices/${invoice.id}`)}
+                          title="View invoice"
+                        >
+                          <Eye size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => router.push(`/invoices/${invoice.id}/edit`)}
+                          title="Edit invoice"
+                        >
+                          <Edit size={16} />
+                        </Button>
+                        {canDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(invoice.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete invoice"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle dir="rtl">تأكيد الحذف</AlertDialogTitle>
+              <AlertDialogDescription dir="rtl">
+                هل أنت متأكد من حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {deleting ? "جاري الحذف..." : "حذف"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle dir="rtl">تأكيد حذف متعدد</AlertDialogTitle>
+              <AlertDialogDescription dir="rtl">
+                هل تريد حذف جميع الفواتير المحددة؟ ({selectedInvoices.size} فاتورة)
+                <br />
+                لا يمكن التراجع عن هذا الإجراء.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDeleteConfirm}
+                disabled={deleting}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {deleting ? "جاري الحذف..." : "حذف الكل"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-    </>
+    </ProtectedRoute>
   );
 }

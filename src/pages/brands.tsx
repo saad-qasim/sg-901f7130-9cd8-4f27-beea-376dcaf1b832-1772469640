@@ -1,116 +1,150 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
-import Head from "next/head";
-import { brandService, Brand } from "@/services/brandService";
+import { brandService } from "@/services/brandService";
+import { supabase } from "@/lib/supabaseClient";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil, Trash2, Plus, Building2, Upload } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2, Plus, Upload, X } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
+import ProtectedRoute from "@/components/ProtectedRoute";
+
+type Brand = Database["public"]["Tables"]["brands"]["Row"];
+type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
 
 export default function BrandsPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string>("");
-
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BrandInsert>({
     name: "",
     logo_url: "",
     warranty_default_text: "",
   });
 
-  // Check permissions
-  useEffect(() => {
-    if (!loading && user) {
-      const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_brand;
-      if (!hasAccess) {
-        router.push("/");
-      }
-    }
-  }, [user, loading, router]);
+  // التحقق من الصلاحيات
+  const isAdmin = user?.role === "admin";
+  const canAddBrand = user?.can_add_brand ?? false;
 
   useEffect(() => {
-    if (user) {
-      loadBrands();
+    // إذا لم يكن لدى المستخدم صلاحية، توجيهه إلى الصفحة الرئيسية
+    if (!isAdmin && !canAddBrand) {
+      alert("⛔ ليس لديك صلاحية للوصول إلى هذه الصفحة");
+      router.push("/");
+      return;
     }
-  }, [user]);
+    
+    loadBrands();
+  }, [isAdmin, canAddBrand]);
 
   const loadBrands = async () => {
     try {
-      const data = await brandService.getBrands();
+      setLoading(true);
+      const data = await brandService.getAllBrands();
       setBrands(data);
     } catch (error) {
       console.error("Error loading brands:", error);
-      alert("فشل تحميل العلامات التجارية!");
+      alert("Failed to load brands");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      logo_url: "",
-      warranty_default_text: "",
-    });
-    setEditingBrand(null);
-    setLogoFile(null);
-    setLogoPreview("");
-  };
-
-  const handleLogoChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file");
+      return;
     }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = fileName;
+
+      // Upload file to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from("brand-logos")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("brand-logos")
+        .getPublicUrl(filePath);
+
+      // Update form data with the public URL
+      setFormData({ ...formData, logo_url: publicUrl });
+      setLogoPreview(publicUrl);
+
+      alert("Logo uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      alert("Failed to upload logo. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setFormData({ ...formData, logo_url: "" });
+    setLogoPreview("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
     try {
-      let logoUrl = formData.logo_url;
-
-      if (logoFile) {
-        logoUrl = await brandService.uploadLogo(logoFile);
-      }
-
-      const brandData = {
-        name: formData.name,
-        logo_url: logoUrl || null,
-        warranty_default_text: formData.warranty_default_text || null,
-      };
-
       if (editingBrand) {
-        await brandService.updateBrand(editingBrand.id, brandData);
-        alert("تم تحديث العلامة التجارية بنجاح!");
+        await brandService.updateBrand(editingBrand.id, formData);
       } else {
-        await brandService.createBrand(brandData);
-        alert("تم إضافة العلامة التجارية بنجاح!");
+        await brandService.createBrand(formData);
       }
-
-      await loadBrands();
-      setIsDialogOpen(false);
+      setDialogOpen(false);
       resetForm();
+      loadBrands();
     } catch (error) {
       console.error("Error saving brand:", error);
-      alert("فشل حفظ العلامة التجارية!");
-    } finally {
-      setIsLoading(false);
+      alert("Failed to save brand");
     }
   };
 
@@ -122,198 +156,219 @@ export default function BrandsPage() {
       warranty_default_text: brand.warranty_default_text || "",
     });
     setLogoPreview(brand.logo_url || "");
-    setIsDialogOpen(true);
+    setDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذه العلامة التجارية؟")) return;
-
+    if (!confirm("Are you sure you want to delete this brand?")) return;
     try {
       await brandService.deleteBrand(id);
-      alert("تم حذف العلامة التجارية بنجاح!");
-      await loadBrands();
+      loadBrands();
     } catch (error) {
       console.error("Error deleting brand:", error);
-      alert("فشل حذف العلامة التجارية!");
+      alert("Failed to delete brand");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
+  const resetForm = () => {
+    setEditingBrand(null);
+    setFormData({
+      name: "",
+      logo_url: "",
+      warranty_default_text: "",
+    });
+    setLogoPreview("");
+  };
 
   return (
-    <>
-      <Head>
-        <title>العلامات التجارية - Invoice PRO</title>
-      </Head>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center gap-3 mb-4">
+          <HomeButton />
           <BackButton />
-          <Card className="mt-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-3xl flex items-center gap-2">
-                    <Building2 className="h-8 w-8" />
-                    إدارة العلامات التجارية
-                  </CardTitle>
-                  <CardDescription className="text-lg mt-2">
-                    إضافة وتعديل العلامات التجارية والضمانات الافتراضية
-                  </CardDescription>
-                </div>
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) resetForm();
-                }}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      إضافة علامة تجارية
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingBrand ? "تعديل العلامة التجارية" : "إضافة علامة تجارية جديدة"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        {editingBrand ? "قم بتعديل بيانات العلامة التجارية" : "أدخل بيانات العلامة التجارية الجديدة"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="name">اسم العلامة التجارية *</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          required
-                          placeholder="مثال: Apple"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="logo">الشعار</Label>
-                        <div className="flex items-center gap-4">
-                          <Input
-                            id="logo"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoChange}
-                            className="flex-1"
-                          />
-                          <Upload className="h-5 w-5 text-gray-500" />
-                        </div>
-                        {logoPreview && (
-                          <div className="mt-4">
-                            <img
-                              src={logoPreview}
-                              alt="Logo preview"
-                              className="max-h-32 object-contain border rounded p-2"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <Label htmlFor="warranty_default_text">نص الضمان الافتراضي</Label>
-                        <Textarea
-                          id="warranty_default_text"
-                          value={formData.warranty_default_text}
-                          onChange={(e) => setFormData({ ...formData, warranty_default_text: e.target.value })}
-                          placeholder="نص الضمان الذي سيظهر في الفواتير بشكل افتراضي"
-                          rows={5}
-                        />
-                      </div>
-
-                      <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
-                          {isLoading ? "جاري الحفظ..." : editingBrand ? "تحديث" : "إضافة"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>الشعار</TableHead>
-                      <TableHead>الاسم</TableHead>
-                      <TableHead>نص الضمان الافتراضي</TableHead>
-                      <TableHead className="text-center">الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {brands.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-gray-500 py-8">
-                          لا توجد علامات تجارية حتى الآن
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      brands.map((brand) => (
-                        <TableRow key={brand.id}>
-                          <TableCell>
-                            {brand.logo_url ? (
-                              <img
-                                src={brand.logo_url}
-                                alt={brand.name}
-                                className="h-12 w-12 object-contain"
-                              />
-                            ) : (
-                              <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center">
-                                <Building2 className="h-6 w-6 text-gray-400" />
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-medium">{brand.name}</TableCell>
-                          <TableCell className="max-w-md truncate">
-                            {brand.warranty_default_text || "-"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex justify-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(brand)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(brand.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
         </div>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Brands</h1>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus size={16} />
+                Add Brand
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingBrand ? "Edit Brand" : "Add New Brand"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Brand Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                {/* Logo Upload Section */}
+                <div>
+                  <Label>Brand Logo</Label>
+                  <div className="space-y-4">
+                    {/* Preview Section */}
+                    {logoPreview ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="h-32 w-32 object-contain border rounded-lg p-2"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={handleRemoveLogo}
+                        >
+                          <X size={14} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground">
+                        <Upload size={24} />
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    <div>
+                      <Input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                        className="hidden"
+                      />
+                      <Label htmlFor="logo-upload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2"
+                          disabled={uploading}
+                          onClick={() => document.getElementById("logo-upload")?.click()}
+                        >
+                          <Upload size={16} />
+                          {uploading ? "Uploading..." : "Upload Logo"}
+                        </Button>
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Supported formats: JPG, PNG, GIF, SVG (Max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="warranty">Default Warranty Text</Label>
+                  <Textarea
+                    id="warranty"
+                    value={formData.warranty_default_text}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        warranty_default_text: e.target.value,
+                      })
+                    }
+                    rows={4}
+                    placeholder="Enter default warranty terms..."
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={uploading}>
+                    {editingBrand ? "Update" : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {loading ? (
+          <p>Loading brands...</p>
+        ) : brands.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">
+            No brands yet. Add your first brand to get started!
+          </p>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Logo</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Warranty Text</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {brands.map((brand) => (
+                  <TableRow key={brand.id}>
+                    <TableCell>
+                      {brand.logo_url ? (
+                        <img
+                          src={brand.logo_url}
+                          alt={brand.name}
+                          className="h-10 w-10 object-contain"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center text-xs">
+                          No Logo
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{brand.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-md truncate">
+                      {brand.warranty_default_text || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEdit(brand)}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(brand.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
-    </>
+    </ProtectedRoute>
   );
 }

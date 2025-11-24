@@ -1,364 +1,404 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
-import Head from "next/head";
 import { productService, ProductWithBrand } from "@/services/productService";
-import { brandService, Brand } from "@/services/brandService";
+import { brandService } from "@/services/brandService";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Pencil, Trash2, Plus, Package } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import HomeButton from "@/components/HomeButton";
+import ProtectedRoute from "@/components/ProtectedRoute";
+
+type Brand = Database["public"]["Tables"]["brands"]["Row"];
+type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
 
 export default function ProductsPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [products, setProducts] = useState<ProductWithBrand[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductWithBrand | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [formData, setFormData] = useState({
-    name: "",
+  const [loading, setLoading] = useState(true);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ProductWithBrand | null>(
+    null
+  );
+  const [formData, setFormData] = useState<ProductInsert>({
     brand_id: "",
+    name: "",
     description: "",
-    model_number: "",
     warranty_text: "",
-    unit_price_iqd: "",
-    unit_price_usd: "",
+    unit_price_iqd: 0,
+    unit_price_usd: 0,
+    stock_quantity: 0,
+    low_stock_threshold: 0,
   });
 
-  // Check permissions
-  useEffect(() => {
-    if (!loading && user) {
-      const hasAccess = user.role === 'admin' || user.role === 'manager' || user.can_add_product;
-      if (!hasAccess) {
-        router.push("/");
-      }
-    }
-  }, [user, loading, router]);
+  // التحقق من الصلاحيات
+  const isAdmin = user?.role === "admin";
+  const canAddProduct = user?.can_add_product ?? false;
 
   useEffect(() => {
-    if (user) {
-      loadProducts();
-      loadBrands();
+    // إذا لم يكن لدى المستخدم صلاحية، توجيهه إلى الصفحة الرئيسية
+    if (!isAdmin && !canAddProduct) {
+      alert("⛔ ليس لديك صلاحية للوصول إلى هذه الصفحة");
+      router.push("/");
+      return;
     }
-  }, [user]);
+    
+    loadData();
+  }, [isAdmin, canAddProduct]);
 
-  const loadProducts = async () => {
+  const loadData = async () => {
     try {
-      const data = await productService.getProducts();
-      setProducts(data);
+      setLoading(true);
+      const [productsData, brandsData] = await Promise.all([
+        productService.getAllProducts(),
+        brandService.getAllBrands(),
+      ]);
+      setProducts(productsData);
+      setBrands(brandsData);
     } catch (error) {
-      console.error("Error loading products:", error);
-      alert("فشل تحميل المنتجات!");
+      console.error("Error loading data:", error);
+      alert("Failed to load products");
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const loadBrands = async () => {
-    try {
-      const data = await brandService.getBrands();
-      setBrands(data);
-    } catch (error) {
-      console.error("Error loading brands:", error);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      brand_id: "",
-      description: "",
-      model_number: "",
-      warranty_text: "",
-      unit_price_iqd: "",
-      unit_price_usd: "",
-    });
-    setEditingProduct(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
     try {
-      const productData = {
-        name: formData.name,
-        brand_id: formData.brand_id,
-        description: formData.description || null,
-        model_number: formData.model_number || null,
-        warranty_text: formData.warranty_text || null,
-        unit_price_iqd: parseFloat(formData.unit_price_iqd) || 0,
-        unit_price_usd: parseFloat(formData.unit_price_usd) || 0,
-      };
-
       if (editingProduct) {
-        await productService.updateProduct(editingProduct.id, productData);
-        alert("تم تحديث المنتج بنجاح!");
+        await productService.updateProduct(editingProduct.id, formData);
       } else {
-        await productService.createProduct(productData);
-        alert("تم إضافة المنتج بنجاح!");
+        await productService.createProduct(formData);
       }
-
-      await loadProducts();
-      setIsDialogOpen(false);
+      setShowDialog(false);
       resetForm();
+      loadData();
     } catch (error) {
       console.error("Error saving product:", error);
-      alert("فشل حفظ المنتج!");
-    } finally {
-      setIsLoading(false);
+      alert("Failed to save product");
     }
   };
 
   const handleEdit = (product: ProductWithBrand) => {
     setEditingProduct(product);
     setFormData({
-      name: product.name,
       brand_id: product.brand_id,
+      name: product.name,
       description: product.description || "",
-      model_number: product.model_number || "",
       warranty_text: product.warranty_text || "",
-      unit_price_iqd: product.unit_price_iqd.toString(),
-      unit_price_usd: product.unit_price_usd.toString(),
+      unit_price_iqd: product.unit_price_iqd || 0,
+      unit_price_usd: product.unit_price_usd || 0,
+      stock_quantity: product.stock_quantity || 0,
+      low_stock_threshold: product.low_stock_threshold || 0,
     });
-    setIsDialogOpen(true);
+    setShowDialog(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
-
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await productService.deleteProduct(id);
-      alert("تم حذف المنتج بنجاح!");
-      await loadProducts();
+      loadData();
     } catch (error) {
       console.error("Error deleting product:", error);
-      alert("فشل حذف المنتج!");
+      alert("Failed to delete product");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">جاري التحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
+  const resetForm = () => {
+    setEditingProduct(null);
+    setFormData({
+      brand_id: "",
+      name: "",
+      description: "",
+      warranty_text: "",
+      unit_price_iqd: 0,
+      unit_price_usd: 0,
+      stock_quantity: 0,
+      low_stock_threshold: 0,
+    });
+  };
 
   return (
-    <>
-      <Head>
-        <title>المنتجات - Invoice PRO</title>
-      </Head>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-7xl mx-auto">
+    <ProtectedRoute>
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center gap-3 mb-4">
+          <HomeButton />
           <BackButton />
-          <Card className="mt-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-3xl flex items-center gap-2">
-                    <Package className="h-8 w-8" />
-                    إدارة المنتجات
-                  </CardTitle>
-                  <CardDescription className="text-lg mt-2">
-                    إضافة وتعديل المنتجات وأسعارها
-                  </CardDescription>
-                </div>
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) resetForm();
-                }}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      إضافة منتج جديد
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>
-                        {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
-                      </DialogTitle>
-                      <DialogDescription>
-                        {editingProduct ? "قم بتعديل بيانات المنتج" : "أدخل بيانات المنتج الجديد"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="brand_id">العلامة التجارية *</Label>
-                        <Select
-                          value={formData.brand_id}
-                          onValueChange={(value) => setFormData({ ...formData, brand_id: value })}
-                          required
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر العلامة التجارية" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {brands.map((brand) => (
-                              <SelectItem key={brand.id} value={brand.id}>
-                                {brand.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="name">اسم المنتج *</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          required
-                          placeholder="مثال: هاتف iPhone 14 Pro"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="model_number">رقم الموديل</Label>
-                        <Input
-                          id="model_number"
-                          value={formData.model_number}
-                          onChange={(e) => setFormData({ ...formData, model_number: e.target.value })}
-                          placeholder="مثال: A2890"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="description">الوصف</Label>
-                        <Textarea
-                          id="description"
-                          value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          placeholder="وصف المنتج"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="unit_price_iqd">السعر (دينار عراقي)</Label>
-                          <Input
-                            id="unit_price_iqd"
-                            type="number"
-                            step="0.01"
-                            value={formData.unit_price_iqd}
-                            onChange={(e) => setFormData({ ...formData, unit_price_iqd: e.target.value })}
-                            placeholder="0.00"
-                            dir="ltr"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="unit_price_usd">السعر (دولار أمريكي)</Label>
-                          <Input
-                            id="unit_price_usd"
-                            type="number"
-                            step="0.01"
-                            value={formData.unit_price_usd}
-                            onChange={(e) => setFormData({ ...formData, unit_price_usd: e.target.value })}
-                            placeholder="0.00"
-                            dir="ltr"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="warranty_text">نص الضمان (اختياري)</Label>
-                        <Textarea
-                          id="warranty_text"
-                          value={formData.warranty_text}
-                          onChange={(e) => setFormData({ ...formData, warranty_text: e.target.value })}
-                          placeholder="إذا كان فارغاً، سيتم استخدام نص الضمان الافتراضي للعلامة التجارية"
-                          rows={3}
-                        />
-                      </div>
-
-                      <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
-                          {isLoading ? "جاري الحفظ..." : editingProduct ? "تحديث" : "إضافة"}
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>اسم المنتج</TableHead>
-                      <TableHead>العلامة التجارية</TableHead>
-                      <TableHead>رقم الموديل</TableHead>
-                      <TableHead className="text-left" dir="ltr">السعر (IQD)</TableHead>
-                      <TableHead className="text-left" dir="ltr">السعر (USD)</TableHead>
-                      <TableHead className="text-center">الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-gray-500 py-8">
-                          لا توجد منتجات حتى الآن
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      products.map((product) => (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
-                          <TableCell>{product.brands?.name || "غير محدد"}</TableCell>
-                          <TableCell>{product.model_number || "-"}</TableCell>
-                          <TableCell className="text-left" dir="ltr">
-                            {product.unit_price_iqd.toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-left" dir="ltr">
-                            {product.unit_price_usd.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex justify-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(product)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(product.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
         </div>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Products</h1>
+          <Dialog
+            open={showDialog}
+            onOpenChange={(open) => {
+              setShowDialog(open);
+              if (!open) resetForm();
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus size={16} />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProduct ? "Edit Product" : "Add New Product"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="brand">Brand *</Label>
+                  <Select
+                    value={formData.brand_id}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, brand_id: value })
+                    }
+                    required
+                  >
+                    <SelectTrigger id="brand">
+                      <SelectValue placeholder="Select brand" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="name">Product Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="price_iqd">Unit Price (IQD)</Label>
+                    <Input
+                      id="price_iqd"
+                      type="number"
+                      step="0.01"
+                      value={formData.unit_price_iqd}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          unit_price_iqd: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="price_usd">Unit Price (USD)</Label>
+                    <Input
+                      id="price_usd"
+                      type="number"
+                      step="0.01"
+                      value={formData.unit_price_usd}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          unit_price_usd: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="stock_quantity">الكمية في المخزون</Label>
+                    <Input
+                      id="stock_quantity"
+                      type="number"
+                      min="0"
+                      value={formData.stock_quantity}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          stock_quantity: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="low_stock_threshold">
+                      حد التنبيه الأدنى
+                    </Label>
+                    <Input
+                      id="low_stock_threshold"
+                      type="number"
+                      min="0"
+                      value={formData.low_stock_threshold}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          low_stock_threshold:
+                            parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="warranty">Warranty Text</Label>
+                  <Textarea
+                    id="warranty"
+                    value={formData.warranty_text}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        warranty_text: e.target.value,
+                      })
+                    }
+                    rows={3}
+                    placeholder="Optional product-specific warranty text..."
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingProduct ? "Update" : "Create"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {loading ? (
+          <p>Loading products...</p>
+        ) : products.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">
+            No products yet. Add your first product to get started!
+          </p>
+        ) : (
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Price (IQD)</TableHead>
+                  <TableHead>Price (USD)</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
+                    <TableCell>{product.brands?.name || "—"}</TableCell>
+                    <TableCell>
+                      {product.unit_price_iqd
+                        ? product.unit_price_iqd.toLocaleString()
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {product.unit_price_usd
+                        ? `$${product.unit_price_usd.toFixed(2)}`
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`font-semibold ${
+                          (product.stock_quantity || 0) > 0 &&
+                          (product.stock_quantity || 0) <=
+                            (product.low_stock_threshold || 0)
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {product.stock_quantity || 0}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(product.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
-    </>
+    </ProtectedRoute>
   );
 }
