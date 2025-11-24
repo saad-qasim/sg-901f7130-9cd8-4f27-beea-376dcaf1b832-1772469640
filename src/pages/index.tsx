@@ -14,7 +14,7 @@ import {
   Package,
   UserCircle,
   LucideProps,
-  Home
+  Home as HomeIcon
 } from "lucide-react";
 import { ForwardRefExoticComponent, RefAttributes } from "react";
 
@@ -26,7 +26,7 @@ export default function Home() {
   const { user, loading } = useAuth();
 
   // Helper function to check permissions, ensuring it returns false if user is not loaded
-  const hasAccess = (permission: keyof typeof user) => {
+  const hasAccess = (permission: keyof User) => {
     if (!user) return false;
     // Admins and managers have access to everything
     if (user.role === 'admin' || user.role === 'manager') return true;
@@ -106,7 +106,7 @@ export default function Home() {
       {
         title: "إعدادات الشركة",
         description: "إدارة معلومات الشركة وإعدادات الفواتير",
-        icon: Home,
+        icon: HomeIcon,
         href: "/admin/companies",
         show: user.role === 'admin',
         color: "bg-gradient-to-br from-cyan-500 to-cyan-600",

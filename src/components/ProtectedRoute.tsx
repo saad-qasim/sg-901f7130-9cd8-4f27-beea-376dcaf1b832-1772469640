@@ -1,19 +1,33 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
+import React, { ReactNode } from "react";
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+interface ProtectedRouteProps {
+  children: ReactNode;
+  allowedRoles?: string[]; // Make allowedRoles optional
+}
+
+export default function ProtectedRoute({ children, allowedRoles = [] }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (loading) {
+      return; // Do nothing while loading
     }
-  }, [user, loading, router]);
+    if (!user) {
+      router.push("/login"); // Redirect if not authenticated
+      return;
+    }
+    // Only check roles if allowedRoles is provided and has roles
+    if (allowedRoles.length > 0 && user.role && !allowedRoles.includes(user.role)) {
+      router.push("/"); // Redirect if role is not allowed
+    }
+  }, [user, loading, router, allowedRoles]);
 
-  // Show loading state while checking auth
-  if (loading) {
+  // While loading or if user role is not yet determined, show a loading state
+  if (loading || !user || (allowedRoles.length > 0 && user.role && !allowedRoles.includes(user.role))) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
