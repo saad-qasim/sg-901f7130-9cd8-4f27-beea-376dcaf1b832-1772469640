@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useAuth } from "@/contexts/AuthContext";
 import { invoiceService, InvoiceWithRelations } from "@/services/invoiceService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ type Invoice = Omit<InvoiceWithRelations, "invoice_items">;
 
 export default function InvoicesListPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -41,6 +43,11 @@ export default function InvoicesListPage() {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // التحقق من الصلاحيات
+  const isAdmin = user?.role === "admin";
+  const canDeleteInvoices = user?.can_delete_invoices ?? false;
+  const canDelete = isAdmin || canDeleteInvoices;
 
   useEffect(() => {
     loadInvoices();
@@ -219,7 +226,7 @@ export default function InvoicesListPage() {
           )}
         </div>
 
-        {selectedInvoices.size > 0 && (
+        {canDelete && selectedInvoices.size > 0 && (
           <div className="mb-4">
             <Button
               variant="destructive"
@@ -245,14 +252,16 @@ export default function InvoicesListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label="Select all"
-                      className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                    />
-                  </TableHead>
+                  {canDelete && (
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
+                        className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>Invoice #</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
@@ -264,15 +273,17 @@ export default function InvoicesListPage() {
               <TableBody>
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedInvoices.has(invoice.id)}
-                        onCheckedChange={(checked) => 
-                          handleSelectInvoice(invoice.id, checked as boolean)
-                        }
-                        aria-label={`Select invoice ${invoice.invoice_number}`}
-                      />
-                    </TableCell>
+                    {canDelete && (
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedInvoices.has(invoice.id)}
+                          onCheckedChange={(checked) => 
+                            handleSelectInvoice(invoice.id, checked as boolean)
+                          }
+                          aria-label={`Select invoice ${invoice.invoice_number}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium">
                       {invoice.invoice_number}
                     </TableCell>
@@ -300,15 +311,17 @@ export default function InvoicesListPage() {
                         >
                           <Edit size={16} />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDeleteClick(invoice.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Delete invoice"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(invoice.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete invoice"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

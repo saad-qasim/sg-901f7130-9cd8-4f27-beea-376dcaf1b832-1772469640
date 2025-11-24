@@ -1,4 +1,6 @@
 import { useState, useEffect, ChangeEvent } from "react";
+import { useRouter } from "next/router";
+import { useAuth } from "@/contexts/AuthContext";
 import { brandService } from "@/services/brandService";
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
@@ -30,6 +32,8 @@ type Brand = Database["public"]["Tables"]["brands"]["Row"];
 type BrandInsert = Database["public"]["Tables"]["brands"]["Insert"];
 
 export default function BrandsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,9 +46,20 @@ export default function BrandsPage() {
     warranty_default_text: "",
   });
 
+  // التحقق من الصلاحيات
+  const isAdmin = user?.role === "admin";
+  const canAddBrand = user?.can_add_brand ?? false;
+
   useEffect(() => {
+    // إذا لم يكن لدى المستخدم صلاحية، توجيهه إلى الصفحة الرئيسية
+    if (!isAdmin && !canAddBrand) {
+      alert("⛔ ليس لديك صلاحية للوصول إلى هذه الصفحة");
+      router.push("/");
+      return;
+    }
+    
     loadBrands();
-  }, []);
+  }, [isAdmin, canAddBrand]);
 
   const loadBrands = async () => {
     try {
