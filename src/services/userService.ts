@@ -68,13 +68,13 @@ export const userService = {
     }
   },
 
-  async updateProfile(id: string, updates: ProfileUpdate): Promise<Profile> {
+  async updateProfile(id: string, updates: ProfileUpdate): Promise<Profile | null> {
     const { data, error } = await supabase
       .from("profiles")
       .update(updates)
       .eq("id", id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
