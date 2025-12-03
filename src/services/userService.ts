@@ -137,7 +137,6 @@ export const userService = {
     },
 
     async deleteUser(id: string): Promise<void> {
-        // Call server-side API route to delete both profile and auth user
         const response = await fetch("/api/admin/delete-user", {
             method: "DELETE",
             headers: {
@@ -146,7 +145,16 @@ export const userService = {
             body: JSON.stringify({ userId: id }),
         });
 
-        const result = await response.json();
+        // نقرأ الرد كنص أولاً حتى لا ينهار لو ما كان JSON
+        const text = await response.text();
+
+        let result: { success?: boolean; error?: string } = {};
+        try {
+            result = text ? JSON.parse(text) : {};
+        } catch {
+            // إذا الرد مو JSON (مثلاً صفحة خطأ HTML)
+            throw new Error("حدث خطأ في السيرفر أثناء حذف الموظف");
+        }
 
         if (!response.ok || !result.success) {
             throw new Error(result.error || "Failed to delete user");
