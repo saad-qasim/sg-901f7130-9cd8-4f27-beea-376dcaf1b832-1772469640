@@ -143,20 +143,43 @@ export const userService = {
       body: JSON.stringify({ userId: id }),
     });
 
-    // اقرأ الرد كنص لتجنب SyntaxError
+    // إذا كان الرد ناجح (200-299)
+    if (response.ok) {
+      // حاول قراءة المحتوى
+      const text = await response.text();
+      
+      // إذا كان الرد فارغ، اعتبره نجاح
+      if (!text || text.trim() === "") {
+        return;
+      }
+
+      // إذا كان فيه محتوى، حاول تحويله لـ JSON
+      try {
+        const result = JSON.parse(text);
+        if (result.success) {
+          return;
+        }
+        throw new Error(result.error || "فشل في حذف الموظف");
+      } catch (parseError) {
+        // إذا فشل parsing لكن status code ناجح، اعتبره نجاح
+        if (response.status >= 200 && response.status < 300) {
+          return;
+        }
+        throw new Error("رد غير صالح من السيرفر");
+      }
+    }
+
+    // إذا كان الرد فاشل (400+, 500+)
     const text = await response.text();
-
-    let result: any = {};
+    let errorMessage = "حدث خطأ في السيرفر أثناء حذف الموظف";
+    
     try {
-      // حاول نحوله JSON – إذا الرد نص خطأ، ما ينهار
-      result = text ? JSON.parse(text) : {};
+      const result = JSON.parse(text);
+      errorMessage = result.error || errorMessage;
     } catch (err) {
-      console.error("❌ delete-user API returned invalid JSON:", text);
-      throw new Error("حدث خطأ في السيرفر أثناء حذف الموظف");
+      // إذا فشل parsing، استخدم الرسالة الافتراضية
     }
 
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || "Failed to delete user");
-    }
+    throw new Error(errorMessage);
   }
 };
