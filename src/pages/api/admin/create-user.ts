@@ -19,30 +19,14 @@ export default async function handler(
         return res.status(405).json({ success: false, error: "Method not allowed" });
     }
 
-    const { email, password, userData } = req.body as {
-        email?: string;
-        password?: string;
-        userData?: {
-            name: string;
-            phone: string;
-            role: string;
-            can_create_invoices: boolean;
-            can_delete_invoices: boolean;
-            can_edit_invoices: boolean;
-            can_add_brand: boolean;
-            can_add_product: boolean;
-            can_view_stats: boolean;
-        };
-    };
+    const { email, password, userData } = req.body;
 
     if (!email || !password || !userData) {
-        return res
-            .status(400)
-            .json({ success: false, error: "Missing email, password or userData" });
+        return res.status(400).json({ success: false, error: "Missing data" });
     }
 
     try {
-        // إنشاء مستخدم في Auth
+        // Create Auth user
         const {
             data: { user },
             error: authError,
@@ -53,31 +37,17 @@ export default async function handler(
         });
 
         if (authError || !user) {
-            console.error("Error creating auth user:", authError);
-            return res
-                .status(500)
-                .json({ success: false, error: "Failed to create auth user" });
+            return res.status(500).json({ success: false, error: authError?.message });
         }
 
-        // إنشاء صف في profiles بنفس الـ id
+        // Create profile record
         const { error: profileError } = await supabaseAdmin.from("profiles").insert({
             id: user.id,
-            name: userData.name,
-            phone: userData.phone,
-            role: userData.role,
-            can_create_invoices: userData.can_create_invoices,
-            can_delete_invoices: userData.can_delete_invoices,
-            can_edit_invoices: userData.can_edit_invoices,
-            can_add_brand: userData.can_add_brand,
-            can_add_product: userData.can_add_product,
-            can_view_stats: userData.can_view_stats,
+            ...userData,
         });
 
         if (profileError) {
-            console.error("Error creating profile:", profileError);
-            return res
-                .status(500)
-                .json({ success: false, error: "Failed to create profile" });
+            return res.status(500).json({ success: false, error: profileError.message });
         }
 
         return res.status(200).json({
@@ -85,10 +55,7 @@ export default async function handler(
             userId: user.id,
             temporaryPassword: password,
         });
-    } catch (error: any) {
-        console.error("Unexpected error creating user:", error);
-        return res
-            .status(500)
-            .json({ success: false, error: "Unexpected error creating user" });
+    } catch (err: any) {
+        return res.status(500).json({ success: false, error: err.message });
     }
 }
