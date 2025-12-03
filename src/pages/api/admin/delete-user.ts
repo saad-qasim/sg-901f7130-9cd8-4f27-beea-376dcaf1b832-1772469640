@@ -1,67 +1,66 @@
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { Database } from "@/integrations/supabase/types";
 
-// Create a Supabase client with the service role key for admin operations
-const getServiceRoleClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// نقرأ متغيرات البيئة من السيرفر
+const supabaseUrl = process.env.SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !supabaseServiceKey) {
+// لو ناقص أي واحد منهم نطلع نفس الرسالة اللي تظهر لك الآن
+if (!supabaseUrl || !serviceRoleKey) {
     throw new Error("Missing Supabase environment variables");
-  }
+}
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-};
+// Supabase admin client باستخدام service_role
+const supabaseAdmin = createClient < Database > (supabaseUrl, serviceRoleKey);
 
 export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
+    req: NextApiRequest,
+    res: NextApiResponse
 ) {
-  // Only allow DELETE requests
-  if (req.method !== "DELETE") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+    if (req.method !== "DELETE") {
+        return res.status(405).json({ success: false, error: "Method not allowed" });
+    }
 
-  try {
-    const { userId } = req.body;
+    const { userId } = req.body as { userId?: string };
 
     if (!userId) {
-      return res.status(400).json({ error: "Missing userId" });
+        return res
+            .status(400)
+            .json({ success: false, error: "Missing userId in request body" });
     }
 
-    const supabaseAdmin = getServiceRoleClient();
+    try {
+        // نحذف من جدول profiles
+        const { error: profileError } = await supabaseAdmin
+            .from("profiles")
+            .delete()
+            .eq("id", userId);
 
-    // Delete from profiles table first
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .delete()
-      .eq("id", userId);
+        if (profileError) {
+            console.error("Error deleting profile:", profileError);
+            return res
+                .status(500)
+                .json({ success: false, error: "Failed to delete profile" });
+        }
 
-    if (profileError) {
-      console.error("Profile deletion error:", profileError);
-      return res.status(400).json({ error: profileError.message });
+        // نحذف المستخدم من Auth
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
+            userId
+        );
+
+        if (authError) {
+            console.error("Error deleting auth user:", authError);
+            return res
+                .status(500)
+                .json({ success: false, error: "Failed to delete auth user" });
+        }
+
+        return res.status(200).json({ success: true });
+    } catch (error: any) {
+        console.error("Unexpected error deleting user:", error);
+        return res
+            .status(500)
+            .json({ success: false, error: "Unexpected error deleting user" });
     }
-
-    // Delete from auth.users
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    if (authError) {
-      console.error("Auth user deletion error:", authError);
-      return res.status(400).json({ error: authError.message });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "User deleted successfully",
-    });
-  } catch (error: any) {
-    console.error("Unexpected error:", error);
-    return res.status(500).json({ error: error.message || "Internal server error" });
-  }
 }
