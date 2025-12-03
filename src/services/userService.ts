@@ -95,7 +95,9 @@ export const userService = {
         return data as AppProfile;
     },
 
-    async createUser(userData: CreateUserData): Promise<{ userId: string; temporaryPassword: string }> {
+    async createUser(
+        userData: CreateUserData
+    ): Promise<{ userId: string; temporaryPassword: string }> {
         // Generate a temporary random password
         const temporaryPassword =
             Math.random().toString(36).slice(-12) +
@@ -123,6 +125,26 @@ export const userService = {
                 },
             }),
         });
+
+        // نقرأ الرد كنص أولاً لتفادي SyntaxError إذا لم يكن JSON
+        const text = await response.text();
+
+        let result: { success?: boolean; error?: string; userId?: string } = {};
+        try {
+            result = text ? JSON.parse(text) : {};
+        } catch {
+            throw new Error("حدث خطأ في السيرفر أثناء إضافة الموظف");
+        }
+
+        if (!response.ok || !result.success || !result.userId) {
+            throw new Error(result.error || "Failed to create user");
+        }
+
+        return {
+            userId: result.userId,
+            temporaryPassword,
+        };
+    },
 
         const result = await response.json();
 
