@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Database } from "@/integrations/supabase/types";
-import { createClient } from "@supabase/supabase-js";
 
 type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
@@ -46,17 +45,15 @@ export const userService = {
         if (profilesError) throw profilesError;
         if (!profiles || profiles.length === 0) return [];
 
-        // Cast the data to our correct, manually defined type.
         const typedProfiles = profiles as AppProfile[];
 
-        // Fetch user emails from server-side API route
         try {
             const response = await fetch("/api/admin/list-users");
             const result = await response.json();
 
             if (!response.ok || !result.success) {
                 console.error("Error fetching auth users:", result.error);
-                return typedProfiles.map(profile => ({
+                return typedProfiles.map((profile) => ({
                     ...profile,
                     email: null,
                 }));
@@ -68,15 +65,17 @@ export const userService = {
                     .map((u: any) => [u.id, u.email as string])
             );
 
-            const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
-                ...profile,
-                email: emailMap.get(profile.id) ?? null,
-            }));
+            const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(
+                (profile) => ({
+                    ...profile,
+                    email: emailMap.get(profile.id) ?? null,
+                })
+            );
 
             return profilesWithEmails;
         } catch (error) {
             console.error("Failed to fetch user emails:", error);
-            return typedProfiles.map(profile => ({
+            return typedProfiles.map((profile) => ({
                 ...profile,
                 email: null,
             }));
@@ -126,15 +125,7 @@ export const userService = {
             }),
         });
 
-        // نقرأ الرد كنص أولاً لتفادي SyntaxError إذا لم يكن JSON
-        const text = await response.text();
-
-        let result: { success?: boolean; error?: string; userId?: string } = {};
-        try {
-            result = text ? JSON.parse(text) : {};
-        } catch {
-            throw new Error("حدث خطأ في السيرفر أثناء إضافة الموظف");
-        }
+        const result = await response.json();
 
         if (!response.ok || !result.success || !result.userId) {
             throw new Error(result.error || "Failed to create user");
@@ -143,18 +134,6 @@ export const userService = {
         return {
             userId: result.userId,
             temporaryPassword,
-        };
-    },
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || "Failed to create user");
-        }
-
-        return {
-            userId: result.userId,
-            temporaryPassword: result.temporaryPassword,
         };
     },
 
@@ -167,16 +146,7 @@ export const userService = {
             body: JSON.stringify({ userId: id }),
         });
 
-        // نقرأ الرد كنص أولاً حتى لا ينهار لو ما كان JSON
-        const text = await response.text();
-
-        let result: { success?: boolean; error?: string } = {};
-        try {
-            result = text ? JSON.parse(text) : {};
-        } catch {
-            // إذا الرد مو JSON (مثلاً صفحة خطأ HTML)
-            throw new Error("حدث خطأ في السيرفر أثناء حذف الموظف");
-        }
+        const result = await response.json();
 
         if (!response.ok || !result.success) {
             throw new Error(result.error || "Failed to delete user");
