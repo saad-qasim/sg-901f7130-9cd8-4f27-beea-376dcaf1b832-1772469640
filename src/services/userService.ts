@@ -134,20 +134,30 @@ export const userService = {
     };
   },
 
-  async deleteUser(id: string): Promise<void> {
-    // Call server-side API route to delete both profile and auth user
-    const response = await fetch("/api/admin/delete-user", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId: id }),
-    });
+    async deleteUser(id: string): Promise<void> {
+        const response = await fetch("/api/admin/delete-user", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userId: id }),
+        });
 
-    const result = await response.json();
+        // اقرأ الرد كنص لتجنب SyntaxError
+        const text = await response.text();
 
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || "Failed to delete user");
+        let result: any = {};
+        try {
+            // حاول نحوله JSON – إذا الرد نص خطأ، ما ينهار
+            result = text ? JSON.parse(text) : {};
+        } catch (err) {
+            console.error("❌ delete-user API returned invalid JSON:", text);
+            throw new Error("حدث خطأ في السيرفر أثناء حذف الموظف");
+        }
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Failed to delete user");
+        }
     }
   },
 };
