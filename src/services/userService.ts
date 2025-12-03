@@ -95,4 +95,61 @@ export const userService = {
         return data as AppProfile;
     },
 
-    async createUser(user
+    async createUser(userData: CreateUserData): Promise<{ userId: string; temporaryPassword: string }> {
+        // Generate a temporary random password
+        const temporaryPassword =
+            Math.random().toString(36).slice(-12) +
+            Math.random().toString(36).slice(-12).toUpperCase();
+
+        // Call server-side API route to create user
+        const response = await fetch("/api/admin/create-user", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                email: userData.email,
+                password: temporaryPassword,
+                userData: {
+                    name: userData.name,
+                    phone: userData.phone,
+                    role: userData.role,
+                    can_create_invoices: userData.can_create_invoices,
+                    can_delete_invoices: userData.can_delete_invoices,
+                    can_edit_invoices: userData.can_edit_invoices,
+                    can_add_brand: userData.can_add_brand,
+                    can_add_product: userData.can_add_product,
+                    can_view_stats: userData.can_view_stats,
+                },
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Failed to create user");
+        }
+
+        return {
+            userId: result.userId,
+            temporaryPassword: result.temporaryPassword,
+        };
+    },
+
+    async deleteUser(id: string): Promise<void> {
+        // Call server-side API route to delete both profile and auth user
+        const response = await fetch("/api/admin/delete-user", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ userId: id }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "Failed to delete user");
+        }
+    },
+};
