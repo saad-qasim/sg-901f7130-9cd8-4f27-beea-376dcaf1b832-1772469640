@@ -143,41 +143,36 @@ export const userService = {
       body: JSON.stringify({ userId: id }),
     });
 
-    // إذا كان الرد ناجح (200-299)
+    // إذا كان status code يشير إلى نجاح (200-299)
     if (response.ok) {
-      // حاول قراءة المحتوى
-      const text = await response.text();
+      // حاول قراءة الرد كـ JSON
+      const contentType = response.headers.get("content-type");
       
-      // إذا كان الرد فارغ، اعتبره نجاح
-      if (!text || text.trim() === "") {
-        return;
-      }
-
-      // إذا كان فيه محتوى، حاول تحويله لـ JSON
-      try {
-        const result = JSON.parse(text);
+      // إذا كان الرد JSON
+      if (contentType && contentType.includes("application/json")) {
+        const result = await response.json();
         if (result.success) {
           return;
         }
         throw new Error(result.error || "فشل في حذف الموظف");
-      } catch (parseError) {
-        // إذا فشل parsing لكن status code ناجح، اعتبره نجاح
-        if (response.status >= 200 && response.status < 300) {
-          return;
-        }
-        throw new Error("رد غير صالح من السيرفر");
       }
+      
+      // إذا كان الرد فارغ أو نص عادي - نعتبره نجاح
+      return;
     }
 
-    // إذا كان الرد فاشل (400+, 500+)
-    const text = await response.text();
+    // إذا كان الرد يشير إلى فشل (400+, 500+)
     let errorMessage = "حدث خطأ في السيرفر أثناء حذف الموظف";
     
     try {
-      const result = JSON.parse(text);
-      errorMessage = result.error || errorMessage;
-    } catch (err) {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const result = await response.json();
+        errorMessage = result.error || errorMessage;
+      }
+    } catch (parseError) {
       // إذا فشل parsing، استخدم الرسالة الافتراضية
+      console.error("فشل في قراءة رسالة الخطأ:", parseError);
     }
 
     throw new Error(errorMessage);
