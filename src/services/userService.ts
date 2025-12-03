@@ -6,175 +6,93 @@ type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 // Define an explicit type for Profile, as the auto-generated one is out of sync.
 export interface AppProfile {
-  id: string;
-  created_at: string;
-  name: string | null;
-  phone: string | null;
-  role: string | null;
-  can_create_invoices: boolean | null;
-  can_delete_invoices: boolean | null;
-  can_edit_invoices: boolean | null;
-  can_add_brand: boolean | null;
-  can_add_product: boolean | null;
-  can_view_stats: boolean | null;
+    id: string;
+    created_at: string;
+    name: string | null;
+    phone: string | null;
+    role: string | null;
+    can_create_invoices: boolean | null;
+    can_delete_invoices: boolean | null;
+    can_edit_invoices: boolean | null;
+    can_add_brand: boolean | null;
+    can_add_product: boolean | null;
+    can_view_stats: boolean | null;
 }
 
 export interface ProfileWithEmail extends AppProfile {
-  email: string | null;
+    email: string | null;
 }
 
 export interface CreateUserData {
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  can_create_invoices: boolean;
-  can_delete_invoices: boolean;
-  can_edit_invoices: boolean;
-  can_add_brand: boolean;
-  can_add_product: boolean;
-  can_view_stats: boolean;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    can_create_invoices: boolean;
+    can_delete_invoices: boolean;
+    can_edit_invoices: boolean;
+    can_add_brand: boolean;
+    can_add_product: boolean;
+    can_view_stats: boolean;
 }
 
 export const userService = {
-  async getAllProfiles(): Promise<ProfileWithEmail[]> {
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    async getAllProfiles(): Promise<ProfileWithEmail[]> {
+        const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("*")
+            .order("created_at", { ascending: false });
 
-    if (profilesError) throw profilesError;
-    if (!profiles || profiles.length === 0) return [];
+        if (profilesError) throw profilesError;
+        if (!profiles || profiles.length === 0) return [];
 
-    // Cast the data to our correct, manually defined type.
-    const typedProfiles = profiles as AppProfile[];
+        // Cast the data to our correct, manually defined type.
+        const typedProfiles = profiles as AppProfile[];
 
-    // Fetch user emails from server-side API route
-    try {
-      const response = await fetch("/api/admin/list-users");
-      const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        console.error("Error fetching auth users:", result.error);
-        return typedProfiles.map(profile => ({
-          ...profile,
-          email: null,
-        }));
-      }
+        // Fetch user emails from server-side API route
+        try {
+            const response = await fetch("/api/admin/list-users");
+            const result = await response.json();
 
-      const emailMap = new Map<string, string>(
-        result.users
-          .filter((u: any) => u.email)
-          .map((u: any) => [u.id, u.email as string])
-      );
+            if (!response.ok || !result.success) {
+                console.error("Error fetching auth users:", result.error);
+                return typedProfiles.map(profile => ({
+                    ...profile,
+                    email: null,
+                }));
+            }
 
-      const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
-        ...profile,
-        email: emailMap.get(profile.id) ?? null,
-      }));
-      
-      return profilesWithEmails;
-    } catch (error) {
-      console.error("Failed to fetch user emails:", error);
-      return typedProfiles.map(profile => ({
-        ...profile,
-        email: null,
-      }));
-    }
-  },
+            const emailMap = new Map < string, string> (
+                result.users
+                    .filter((u: any) => u.email)
+                    .map((u: any) => [u.id, u.email as string])
+            );
 
-  async updateProfile(id: string, updates: ProfileUpdate): Promise<AppProfile> {
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+            const profilesWithEmails: ProfileWithEmail[] = typedProfiles.map(profile => ({
+                ...profile,
+                email: emailMap.get(profile.id) ?? null,
+            }));
 
-    if (error) throw error;
-    return data as AppProfile;
-  },
-
-  async createUser(userData: CreateUserData): Promise<{ userId: string; temporaryPassword: string }> {
-    // Generate a temporary random password
-    const temporaryPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12).toUpperCase();
-
-    // Call server-side API route to create user
-    const response = await fetch("/api/admin/create-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: userData.email,
-        password: temporaryPassword,
-        userData: {
-          name: userData.name,
-          phone: userData.phone,
-          role: userData.role,
-          can_create_invoices: userData.can_create_invoices,
-          can_delete_invoices: userData.can_delete_invoices,
-          can_edit_invoices: userData.can_edit_invoices,
-          can_add_brand: userData.can_add_brand,
-          can_add_product: userData.can_add_product,
-          can_view_stats: userData.can_view_stats,
-        },
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || "Failed to create user");
-    }
-
-    return {
-      userId: result.userId,
-      temporaryPassword: result.temporaryPassword,
-    };
-  },
-
-  async deleteUser(id: string): Promise<void> {
-    const response = await fetch("/api/admin/delete-user", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId: id }),
-    });
-
-    // إذا كان status code يشير إلى نجاح (200-299)
-    if (response.ok) {
-      // حاول قراءة الرد كـ JSON
-      const contentType = response.headers.get("content-type");
-      
-      // إذا كان الرد JSON
-      if (contentType && contentType.includes("application/json")) {
-        const result = await response.json();
-        if (result.success) {
-          return;
+            return profilesWithEmails;
+        } catch (error) {
+            console.error("Failed to fetch user emails:", error);
+            return typedProfiles.map(profile => ({
+                ...profile,
+                email: null,
+            }));
         }
-        throw new Error(result.error || "فشل في حذف الموظف");
-      }
-      
-      // إذا كان الرد فارغ أو نص عادي - نعتبره نجاح
-      return;
-    }
+    },
 
-    // إذا كان الرد يشير إلى فشل (400+, 500+)
-    let errorMessage = "حدث خطأ في السيرفر أثناء حذف الموظف";
-    
-    try {
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const result = await response.json();
-        errorMessage = result.error || errorMessage;
-      }
-    } catch (parseError) {
-      // إذا فشل parsing، استخدم الرسالة الافتراضية
-      console.error("فشل في قراءة رسالة الخطأ:", parseError);
-    }
+    async updateProfile(id: string, updates: ProfileUpdate): Promise<AppProfile> {
+        const { data, error } = await supabase
+            .from("profiles")
+            .update(updates)
+            .eq("id", id)
+            .select()
+            .single();
 
-    throw new Error(errorMessage);
-  }
-};
+        if (error) throw error;
+        return data as AppProfile;
+    },
+
+    async createUser(user
