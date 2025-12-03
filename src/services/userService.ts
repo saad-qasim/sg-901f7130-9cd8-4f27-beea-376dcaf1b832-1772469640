@@ -134,30 +134,29 @@ export const userService = {
     };
   },
 
-    async deleteUser(id: string): Promise<void> {
-        const response = await fetch("/api/admin/delete-user", {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ userId: id }),
-        });
+  async deleteUser(id: string): Promise<void> {
+    const response = await fetch("/api/admin/delete-user", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId: id }),
+    });
 
-        // اقرأ الرد كنص لتجنب SyntaxError
-        const text = await response.text();
+    // اقرأ الرد كنص لتجنب SyntaxError
+    const text = await response.text();
 
-        let result: any = {};
-        try {
-            // حاول نحوله JSON – إذا الرد نص خطأ، ما ينهار
-            result = text ? JSON.parse(text) : {};
-        } catch (err) {
-            console.error("❌ delete-user API returned invalid JSON:", text);
-            throw new Error("حدث خطأ في السيرفر أثناء حذف الموظف");
-        }
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || "Failed to delete user");
-        }
+    let result: any = {};
+    try {
+      // حاول نحوله JSON – إذا الرد نص خطأ، ما ينهار
+      result = text ? JSON.parse(text) : {};
+    } catch (err) {
+      console.error("❌ delete-user API returned invalid JSON:", text);
+      throw new Error("حدث خطأ في السيرفر أثناء حذف الموظف");
     }
-  },
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "Failed to delete user");
+    }
+  }
 };
