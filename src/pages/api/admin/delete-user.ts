@@ -1,22 +1,25 @@
+// src/pages/api/admin/delete-user.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "@/integrations/supabase/types";
-
-// نستخدم نفس المتغيرات الموجودة عندك في Environment
-const supabaseUrl =
-    process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase environment variables");
-}
-
-const supabaseAdmin = createClient < Database > (supabaseUrl, serviceRoleKey);
 
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
+    const supabaseUrl =
+        process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+        return res.status(500).json({
+            success: false,
+            error: "Missing Supabase environment variables",
+        });
+    }
+
+    const supabaseAdmin = createClient < Database > (supabaseUrl, serviceRoleKey);
+
     if (req.method !== "DELETE") {
         return res
             .status(405)
@@ -32,7 +35,6 @@ export default async function handler(
     }
 
     try {
-        // حذف صف الـ profile
         const { error: profileError } = await supabaseAdmin
             .from("profiles")
             .delete()
@@ -44,7 +46,6 @@ export default async function handler(
                 .json({ success: false, error: profileError.message });
         }
 
-        // حذف المستخدم من Auth
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(
             userId
         );
@@ -55,11 +56,11 @@ export default async function handler(
                 .json({ success: false, error: authError.message });
         }
 
-        // نجاح ✅
         return res.status(200).json({ success: true });
     } catch (error: any) {
-        return res
-            .status(500)
-            .json({ success: false, error: error.message ?? "Unexpected error" });
+        return res.status(500).json({
+            success: false,
+            error: error.message ?? "Unexpected error",
+        });
     }
 }
