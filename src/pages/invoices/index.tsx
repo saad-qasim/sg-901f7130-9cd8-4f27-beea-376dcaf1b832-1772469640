@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Search, Trash2, Edit } from "lucide-react";
+import { Plus, Eye, Search, Trash2, Edit, Printer, Download } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import HomeButton from "@/components/HomeButton";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -105,6 +105,59 @@ export default function InvoicesListPage() {
       newSelected.delete(invoiceId);
     }
     setSelectedInvoices(newSelected);
+  };
+
+  const handlePrintInvoice = (invoiceId: string) => {
+    // Open invoice page in new window and trigger print
+    const printWindow = window.open(`/invoices/${invoiceId}`, '_blank');
+    if (printWindow) {
+      printWindow.addEventListener('load', () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      });
+    }
+  };
+
+  const handleDownloadPDF = async (invoiceId: string, invoiceNumber: string) => {
+    try {
+      // Open the invoice page temporarily to generate PDF
+      const response = await fetch(`/invoices/${invoiceId}`);
+      const html = await response.text();
+      
+      // Create temporary div
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+      
+      // Get invoice content
+      const invoiceContent = tempDiv.querySelector('#invoice-print-area');
+      
+      if (invoiceContent) {
+        const html2pdf = (await import("html2pdf.js")).default;
+        
+        const opt = {
+          margin: 10,
+          filename: `${invoiceNumber}.pdf`,
+          image: { type: "jpeg" as const, quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
+          pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+        };
+
+        await html2pdf().set(opt).from(invoiceContent).save();
+      }
+      
+      // Clean up
+      document.body.removeChild(tempDiv);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      // Fallback: open invoice in new tab
+      window.open(`/invoices/${invoiceId}`, '_blank');
+      alert("تعذر تحميل PDF. يرجى استخدام زر الطباعة من صفحة الفاتورة.");
+    }
   };
 
   const handleDeleteClick = (invoiceId: string) => {
@@ -241,7 +294,7 @@ export default function InvoicesListPage() {
               : "No invoices yet. Create your first invoice to get started!"}
           </p>
         ) : (
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -258,7 +311,7 @@ export default function InvoicesListPage() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Brand</TableHead>
                   <TableHead>Total</TableHead>
-                  <TableHead className="w-[120px]">Actions</TableHead>
+                  <TableHead className="w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -299,6 +352,24 @@ export default function InvoicesListPage() {
                           title="Edit invoice"
                         >
                           <Edit size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handlePrintInvoice(invoice.id)}
+                          title="Print invoice"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Printer size={16} />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDownloadPDF(invoice.id, invoice.invoice_number)}
+                          title="Download PDF"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <Download size={16} />
                         </Button>
                         <Button
                           size="icon"
