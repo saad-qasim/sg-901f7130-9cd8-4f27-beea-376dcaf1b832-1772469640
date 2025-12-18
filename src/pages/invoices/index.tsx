@@ -133,7 +133,7 @@ export default function InvoicesListPage() {
       document.body.appendChild(tempDiv);
       
       // Get invoice content
-      const invoiceContent = tempDiv.querySelector('#invoice-print-area');
+      const invoiceContent = tempDiv.querySelector('#invoice-print-area') as HTMLElement;
       
       if (invoiceContent) {
         const html2pdf = (await import("html2pdf.js")).default;
