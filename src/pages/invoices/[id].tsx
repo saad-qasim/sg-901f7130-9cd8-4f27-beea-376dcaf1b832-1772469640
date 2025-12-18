@@ -425,28 +425,43 @@ export default function InvoiceDetailPage() {
     margin: 0;
   }
 
-  @media print {
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-    }
+ @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
 
-    .no-print { display: none !important; }
-    .print-only { display: block !important; }
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    height: auto !important;
+  }
 
-    .invoice-paper {
-  width: 210mm;
-  min-height: 297mm;
-  padding: 12mm;
-  margin: 0 auto;
-  background: white;
-  box-sizing: border-box; /* 🔴 هذا هو المفتاح */
-}
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
 
-  table, thead, tbody, tr, td, th {
-    break-inside: avoid;
-    page-break-inside: avoid;
+  /* لا نستخدم min-height بالطباعة */
+  .invoice-paper {
+    width: 210mm !important;
+    height: auto !important;
+    min-height: auto !important;
+    padding: 12mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    background: #fff !important;
+
+    /* أهم سطرين لمنع صفحة ثانية فارغة */
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* إذا عندك عناصر داخل الفاتورة تكسر الصفحة بدون قصد */
+  #invoice-print-area,
+  #invoice-print-area * {
+    page-break-after: auto;
+    break-after: auto;
   }
 }
 `}</style>
