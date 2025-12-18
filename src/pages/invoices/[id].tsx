@@ -387,13 +387,77 @@ export default function InvoiceDetailPage() {
       </div>
 
       <style jsx global>{`
+        /* A4 Print Styling */
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+
+        .invoice-a4 {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 20mm;
+          margin: 0 auto;
+          background: white;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* PAID Stamp Styling */
+        .paid-stamp {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 120px;
+          font-weight: bold;
+          color: rgba(34, 197, 94, 0.15);
+          border: 8px solid rgba(34, 197, 94, 0.15);
+          padding: 20px 60px;
+          border-radius: 20px;
+          pointer-events: none;
+          z-index: 1;
+          letter-spacing: 10px;
+        }
+
         @media print {
+          body {
+            margin: 0;
+            padding: 0;
+          }
+
+          .invoice-a4 {
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 20mm;
+            box-shadow: none;
+            page-break-after: always;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
           .print-only {
             display: block !important;
           }
+
+          /* Ensure PAID stamp is visible in print */
+          .paid-stamp {
+            color: rgba(34, 197, 94, 0.2) !important;
+            border-color: rgba(34, 197, 94, 0.2) !important;
+          }
         }
+
         .print-only {
           display: none;
+        }
+
+        @media screen {
+          .invoice-a4 {
+            margin-top: 20px;
+            margin-bottom: 40px;
+          }
         }
       `}</style>
     </ProtectedRoute>
