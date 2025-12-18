@@ -422,7 +422,7 @@ export default function InvoiceDetailPage() {
   /* ===== طباعة فقط (A4) ===== */
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 0;
   }
 
   @media print {
@@ -436,19 +436,20 @@ export default function InvoiceDetailPage() {
     .print-only { display: block !important; }
 
     .invoice-paper {
-      width: 210mm !important;
-      max-width: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      box-shadow: none !important;
-    }
-
-    /* تقليل احتمال تقطيع الجدول */
-    table, thead, tbody, tr, td, th {
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 12mm !important;        /* الهامش داخل الفاتورة */
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    max-width: none !important;
   }
+
+  table, thead, tbody, tr, td, th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
 `}</style>
     </ProtectedRoute>
   );
