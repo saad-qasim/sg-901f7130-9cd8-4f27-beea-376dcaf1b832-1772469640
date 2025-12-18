@@ -71,7 +71,7 @@ export default function InvoiceDetailPage() {
   };
 
   const handleDownloadPDF = async () => {
-    const element = document.getElementById("invoice-content");
+    const element = document.getElementById("invoice-print-area");
     if (!element) return;
 
     try {
@@ -196,7 +196,7 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Invoice Content - A4 Format */}
-        <div id="invoice-content" className="invoice-a4 relative">
+        <div id="invoice-print-area" className="invoice-paper">
           {/* PAID Stamp - Only visible when invoice is paid */}
           {isPaid && (
             <div className="paid-stamp">PAID</div>
@@ -393,7 +393,7 @@ export default function InvoiceDetailPage() {
           margin: 0;
         }
 
-        .invoice-a4 {
+        .invoice-paper {
           width: 210mm;
           min-height: 297mm;
           padding: 20mm;
@@ -425,7 +425,7 @@ export default function InvoiceDetailPage() {
             padding: 0;
           }
 
-          .invoice-a4 {
+          .invoice-paper {
             width: 210mm;
             height: 297mm;
             margin: 0;
@@ -454,7 +454,7 @@ export default function InvoiceDetailPage() {
         }
 
         @media screen {
-          .invoice-a4 {
+          .invoice-paper {
             margin-top: 20px;
             margin-bottom: 40px;
           }
