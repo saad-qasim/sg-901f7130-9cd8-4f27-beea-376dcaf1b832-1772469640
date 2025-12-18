@@ -43,26 +43,26 @@ export default function InvoiceDetailPage() {
         }
     };
 
-    const handleDownloadPDF = async () => {
-        const element = document.getElementById("invoice-print-area");
-        if (!element) return;
+    const handleMarkAsPaid = async () => {
+        if (!invoice || !id) return;
+
+        if (!confirm("هل أنت متأكد من أن هذه الفاتورة تم دفعها؟")) {
+            return;
+        }
 
         try {
-            const html2pdf = (await import("html2pdf.js")).default;
+            setMarkingAsPaid(true);
+            await invoiceService.markInvoiceAsPaid(id as string);
 
-            const opt = {
-                margin: 10,
-                filename: `${invoice?.invoice_number || "invoice"}.pdf`,
-                image: { type: "jpeg" as const, quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
-                pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-            };
+            // إعادة تحميل الفاتورة لعرض الحالة المحدثة
+            await loadInvoice(id as string);
 
-            html2pdf().set(opt).from(element).save();
+            alert("✅ تم تحديث حالة الفاتورة إلى مدفوعة بنجاح!");
         } catch (error) {
-            console.error("Error generating PDF:", error);
-            alert("Failed to generate PDF. Please try printing instead.");
+            console.error("Error marking invoice as paid:", error);
+            alert("فشل في تحديث حالة الفاتورة. يرجى المحاولة مرة أخرى.");
+        } finally {
+            setMarkingAsPaid(false);
         }
     };
 
