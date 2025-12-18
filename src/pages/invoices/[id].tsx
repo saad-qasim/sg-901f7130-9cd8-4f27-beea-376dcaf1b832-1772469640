@@ -436,14 +436,13 @@ export default function InvoiceDetailPage() {
     .print-only { display: block !important; }
 
     .invoice-paper {
-    width: 210mm !important;
-    height: 297mm !important;
-    margin: 0 !important;
-    padding: 12mm !important;        /* الهامش داخل الفاتورة */
-    box-sizing: border-box !important;
-    box-shadow: none !important;
-    max-width: none !important;
-  }
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm;
+  margin: 0 auto;
+  background: white;
+  box-sizing: border-box; /* 🔴 هذا هو المفتاح */
+}
 
   table, thead, tbody, tr, td, th {
     break-inside: avoid;
