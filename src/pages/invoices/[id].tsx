@@ -386,80 +386,70 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      <style jsx global>{`
-        /* A4 Print Styling */
-        @page {
-          size: A4 portrait;
-          margin: 0;
-        }
+          <style jsx global>{`
+  /* ===== شاشة فقط (طبيعي) ===== */
+  .invoice-paper {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 900px;
+    margin: 20px auto 40px;
+    padding: 24px;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.08);
+  }
 
-        .invoice-paper {
-          width: 210mm;
-          min-height: 297mm;
-          padding: 20mm;
-          margin: 0 auto;
-          background: white;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
+  .print-only { display: none; }
+  .no-print { display: block; }
 
-        /* PAID Stamp Styling */
-        .paid-stamp {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(-45deg);
-          font-size: 120px;
-          font-weight: bold;
-          color: rgba(34, 197, 94, 0.15);
-          border: 8px solid rgba(34, 197, 94, 0.15);
-          padding: 20px 60px;
-          border-radius: 20px;
-          pointer-events: none;
-          z-index: 1;
-          letter-spacing: 10px;
-        }
+  /* PAID Stamp */
+  .paid-stamp {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-20deg);
+    font-size: 96px;
+    font-weight: bold;
+    color: rgba(34, 197, 94, 0.15);
+    border: 6px solid rgba(34, 197, 94, 0.15);
+    padding: 18px 48px;
+    border-radius: 18px;
+    pointer-events: none;
+    z-index: 1;
+    letter-spacing: 6px;
+  }
 
-        @media print {
-          body {
-            margin: 0;
-            padding: 0;
-          }
+  /* ===== طباعة فقط (A4) ===== */
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
 
-          .invoice-paper {
-            width: 210mm;
-            height: 297mm;
-            margin: 0;
-            padding: 20mm;
-            box-shadow: none;
-            page-break-after: always;
-          }
+  @media print {
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+    }
 
-          .no-print {
-            display: none !important;
-          }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
 
-          .print-only {
-            display: block !important;
-          }
+    .invoice-paper {
+      width: 210mm !important;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+    }
 
-          /* Ensure PAID stamp is visible in print */
-          .paid-stamp {
-            color: rgba(34, 197, 94, 0.2) !important;
-            border-color: rgba(34, 197, 94, 0.2) !important;
-          }
-        }
-
-        .print-only {
-          display: none;
-        }
-
-        @media screen {
-          .invoice-paper {
-            margin-top: 20px;
-            margin-bottom: 40px;
-          }
-        }
-      `}</style>
+    /* تقليل احتمال تقطيع الجدول */
+    table, thead, tbody, tr, td, th {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+`}</style>
     </ProtectedRoute>
   );
 }
