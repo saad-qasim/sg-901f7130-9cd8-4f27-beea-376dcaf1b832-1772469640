@@ -90,7 +90,7 @@ export default function EditInvoicePage() {
   useEffect(() => {
     if (selectedBrand) {
       loadProducts(selectedBrand.id);
-      setWarrantyText(selectedBrand.warranty_default_text || "");
+      setWarrantyText(selectedBrand.warranty_text || "");
     }
   }, [selectedBrand]);
 
