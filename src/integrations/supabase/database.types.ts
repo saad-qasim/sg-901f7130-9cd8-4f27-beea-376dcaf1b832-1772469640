@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -21,51 +21,69 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
-          warranty_default_text: string | null
+          updated_at: string | null
+          warranty_text: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           logo_url?: string | null
           name: string
-          warranty_default_text?: string | null
+          updated_at?: string | null
+          warranty_text?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           logo_url?: string | null
           name?: string
-          warranty_default_text?: string | null
+          updated_at?: string | null
+          warranty_text?: string | null
         }
         Relationships: []
       }
       company_settings: {
         Row: {
+          company_address: string | null
+          company_email: string | null
           company_info_text: string | null
           company_name: string
+          company_phone: string | null
           created_at: string | null
-          default_currency: string
+          default_currency: string | null
           id: string
-          invoice_prefix: string
-          invoice_start_number: number
+          invoice_prefix: string | null
+          invoice_start_number: number | null
+          updated_at: string | null
+          warranty_months: number | null
         }
         Insert: {
+          company_address?: string | null
+          company_email?: string | null
           company_info_text?: string | null
           company_name: string
+          company_phone?: string | null
           created_at?: string | null
-          default_currency?: string
+          default_currency?: string | null
           id?: string
-          invoice_prefix?: string
-          invoice_start_number?: number
+          invoice_prefix?: string | null
+          invoice_start_number?: number | null
+          updated_at?: string | null
+          warranty_months?: number | null
         }
         Update: {
+          company_address?: string | null
+          company_email?: string | null
           company_info_text?: string | null
           company_name?: string
+          company_phone?: string | null
           created_at?: string | null
-          default_currency?: string
+          default_currency?: string | null
           id?: string
-          invoice_prefix?: string
-          invoice_start_number?: number
+          invoice_prefix?: string | null
+          invoice_start_number?: number | null
+          updated_at?: string | null
+          warranty_months?: number | null
         }
         Relationships: []
       }
@@ -77,6 +95,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          updated_at: string | null
         }
         Insert: {
           address?: string | null
@@ -85,6 +104,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          updated_at?: string | null
         }
         Update: {
           address?: string | null
@@ -93,13 +113,59 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          phone: string | null
+          role: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
+          created_at: string | null
           id: string
-          invoice_id: string | null
+          invoice_id: string
           product_id: string | null
           product_name_snapshot: string
           quantity: number
@@ -108,18 +174,20 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          created_at?: string | null
           id?: string
-          invoice_id?: string | null
+          invoice_id: string
           product_id?: string | null
           product_name_snapshot: string
           quantity?: number
           serial_number?: string | null
-          total?: number
-          unit_price?: number
+          total: number
+          unit_price: number
         }
         Update: {
+          created_at?: string | null
           id?: string
-          invoice_id?: string | null
+          invoice_id?: string
           product_id?: string | null
           product_name_snapshot?: string
           quantity?: number
@@ -150,8 +218,7 @@ export type Database = {
           company_id: string | null
           company_info_snapshot: string | null
           created_at: string | null
-          created_by: string | null
-          currency: string
+          currency: string | null
           customer_id: string | null
           id: string
           invoice_date: string
@@ -159,11 +226,11 @@ export type Database = {
           invoice_title: string | null
           notes: string | null
           payment_date: string | null
-          payment_status: string
+          payment_status: string | null
           shipping_cost: number | null
-          subtotal: number | null
-          template_type: string | null
-          total: number | null
+          subtotal: number
+          total: number
+          updated_at: string | null
           warranty_end_date: string | null
           warranty_text_snapshot: string | null
         }
@@ -172,20 +239,19 @@ export type Database = {
           company_id?: string | null
           company_info_snapshot?: string | null
           created_at?: string | null
-          created_by?: string | null
-          currency?: string
+          currency?: string | null
           customer_id?: string | null
           id?: string
-          invoice_date: string
+          invoice_date?: string
           invoice_number: string
           invoice_title?: string | null
           notes?: string | null
           payment_date?: string | null
-          payment_status?: string
+          payment_status?: string | null
           shipping_cost?: number | null
-          subtotal?: number | null
-          template_type?: string | null
-          total?: number | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
           warranty_end_date?: string | null
           warranty_text_snapshot?: string | null
         }
@@ -194,8 +260,7 @@ export type Database = {
           company_id?: string | null
           company_info_snapshot?: string | null
           created_at?: string | null
-          created_by?: string | null
-          currency?: string
+          currency?: string | null
           customer_id?: string | null
           id?: string
           invoice_date?: string
@@ -203,11 +268,11 @@ export type Database = {
           invoice_title?: string | null
           notes?: string | null
           payment_date?: string | null
-          payment_status?: string
+          payment_status?: string | null
           shipping_cost?: number | null
-          subtotal?: number | null
-          template_type?: string | null
-          total?: number | null
+          subtotal?: number
+          total?: number
+          updated_at?: string | null
           warranty_end_date?: string | null
           warranty_text_snapshot?: string | null
         }
@@ -238,42 +303,36 @@ export type Database = {
       products: {
         Row: {
           brand_id: string | null
+          cost: number | null
           created_at: string | null
           description: string | null
           id: string
-          low_stock_threshold: number
-          model_number: string | null
           name: string
-          stock_quantity: number
-          unit_price_iqd: number | null
-          unit_price_usd: number | null
-          warranty_text: string | null
+          price: number
+          stock_quantity: number | null
+          updated_at: string | null
         }
         Insert: {
           brand_id?: string | null
+          cost?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
-          low_stock_threshold?: number
-          model_number?: string | null
           name: string
-          stock_quantity?: number
-          unit_price_iqd?: number | null
-          unit_price_usd?: number | null
-          warranty_text?: string | null
+          price?: number
+          stock_quantity?: number | null
+          updated_at?: string | null
         }
         Update: {
           brand_id?: string | null
+          cost?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
-          low_stock_threshold?: number
-          model_number?: string | null
           name?: string
-          stock_quantity?: number
-          unit_price_iqd?: number | null
-          unit_price_usd?: number | null
-          warranty_text?: string | null
+          price?: number
+          stock_quantity?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -287,43 +346,28 @@ export type Database = {
       }
       profiles: {
         Row: {
-          can_add_brand: boolean
-          can_add_product: boolean
-          can_create_invoices: boolean
-          can_delete_invoices: boolean
-          can_edit_invoices: boolean
-          can_view_stats: boolean
+          avatar_url: string | null
           created_at: string | null
+          email: string | null
+          full_name: string | null
           id: string
-          name: string | null
-          phone: string | null
-          role: string | null
+          updated_at: string | null
         }
         Insert: {
-          can_add_brand?: boolean
-          can_add_product?: boolean
-          can_create_invoices?: boolean
-          can_delete_invoices?: boolean
-          can_edit_invoices?: boolean
-          can_view_stats?: boolean
+          avatar_url?: string | null
           created_at?: string | null
+          email?: string | null
+          full_name?: string | null
           id: string
-          name?: string | null
-          phone?: string | null
-          role?: string | null
+          updated_at?: string | null
         }
         Update: {
-          can_add_brand?: boolean
-          can_add_product?: boolean
-          can_create_invoices?: boolean
-          can_delete_invoices?: boolean
-          can_edit_invoices?: boolean
-          can_view_stats?: boolean
+          avatar_url?: string | null
           created_at?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
-          name?: string | null
-          phone?: string | null
-          role?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
