@@ -39,7 +39,7 @@ export default function BrandsPage() {
   const [formData, setFormData] = useState<BrandInsert>({
     name: "",
     logo_url: "",
-    warranty_default_text: "",
+    warranty_text: "",
   });
 
   useEffect(() => {
@@ -138,7 +138,7 @@ export default function BrandsPage() {
     setFormData({
       name: brand.name,
       logo_url: brand.logo_url || "",
-      warranty_default_text: brand.warranty_default_text || "",
+      warranty_text: brand.warranty_text || "",
     });
     setLogoPreview(brand.logo_url || "");
     setDialogOpen(true);
@@ -160,7 +160,7 @@ export default function BrandsPage() {
     setFormData({
       name: "",
       logo_url: "",
-      warranty_default_text: "",
+      warranty_text: "",
     });
     setLogoPreview("");
   };
@@ -264,11 +264,11 @@ export default function BrandsPage() {
                   <Label htmlFor="warranty">Default Warranty Text</Label>
                   <Textarea
                     id="warranty"
-                    value={formData.warranty_default_text}
+                    value={formData.warranty_text}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        warranty_default_text: e.target.value,
+                        warranty_text: e.target.value,
                       })
                     }
                     rows={4}
@@ -327,7 +327,7 @@ export default function BrandsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{brand.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-md truncate">
-                      {brand.warranty_default_text || "—"}
+                      {brand.warranty_text || "—"}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
