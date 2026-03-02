@@ -271,8 +271,8 @@ export default function EditInvoicePage() {
       total: unitPrice * newItems[index].quantity,
     };
 
-    if (product.warranty_text && !warrantyText) {
-      setWarrantyText(product.warranty_text);
+    if (product.brands?.warranty_text && !warrantyText) {
+      setWarrantyText(product.brands.warranty_text);
     }
 
     setItems(newItems);

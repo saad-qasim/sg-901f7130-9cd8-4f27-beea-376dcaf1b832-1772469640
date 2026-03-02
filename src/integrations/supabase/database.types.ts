@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
+ 
 export type Json =
   | string
   | number
@@ -304,34 +304,49 @@ export type Database = {
         Row: {
           brand_id: string | null
           cost: number | null
+          cost_iqd: number | null
+          cost_usd: number | null
           created_at: string | null
           description: string | null
           id: string
+          model: string | null
           name: string
           price: number
           stock_quantity: number | null
+          unit_price_iqd: number | null
+          unit_price_usd: number | null
           updated_at: string | null
         }
         Insert: {
           brand_id?: string | null
           cost?: number | null
+          cost_iqd?: number | null
+          cost_usd?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
+          model?: string | null
           name: string
           price?: number
           stock_quantity?: number | null
+          unit_price_iqd?: number | null
+          unit_price_usd?: number | null
           updated_at?: string | null
         }
         Update: {
           brand_id?: string | null
           cost?: number | null
+          cost_iqd?: number | null
+          cost_usd?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
+          model?: string | null
           name?: string
           price?: number
           stock_quantity?: number | null
+          unit_price_iqd?: number | null
+          unit_price_usd?: number | null
           updated_at?: string | null
         }
         Relationships: [

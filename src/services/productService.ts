@@ -6,6 +6,7 @@ type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 export type ProductWithBrand = ProductRow & {
   brands: {
     name: string;
+    warranty_text: string | null;
   } | null;
 };
 
@@ -16,7 +17,8 @@ export const productService = {
       .select(`
         *,
         brands (
-          name
+          name,
+          warranty_text
         )
       `)
       .order("created_at", { ascending: false });
@@ -31,7 +33,8 @@ export const productService = {
       .select(`
         *,
         brands (
-          name
+          name,
+          warranty_text
         )
       `)
       .eq("brand_id", brandId)
