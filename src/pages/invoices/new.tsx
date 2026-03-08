@@ -38,7 +38,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Brand = Database["public"]["Tables"]["brands"]["Row"];
-type InvoiceItemInsert = Database["public"]["Tables"]["invoice_items"]["Insert"];
+type InvoiceItemInsert = Omit<Database["public"]["Tables"]["invoice_items"]["Insert"], "invoice_id">;
 type CustomerInsert = Database["public"]["Tables"]["customers"]["Insert"];
 type CompanySettingsRow = Database["public"]["Tables"]["company_settings"]["Row"];
 
@@ -372,7 +372,7 @@ export default function NewInvoicePage() {
     const results = products.filter(
       (p) =>
         p.description?.toLowerCase().includes(lowercasedTerm) ||
-        p.model_number?.toLowerCase().includes(lowercasedTerm) ||
+        p.model?.toLowerCase().includes(lowercasedTerm) ||
         p.name.toLowerCase().includes(lowercasedTerm)
     );
     setFilteredProducts(results);

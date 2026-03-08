@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -309,6 +309,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          low_stock_threshold: number | null
           model: string | null
           name: string
           price: number
@@ -316,6 +317,7 @@ export type Database = {
           unit_price_iqd: number | null
           unit_price_usd: number | null
           updated_at: string | null
+          warranty_text: string | null
         }
         Insert: {
           brand_id?: string | null
@@ -325,6 +327,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          low_stock_threshold?: number | null
           model?: string | null
           name: string
           price?: number
@@ -332,6 +335,7 @@ export type Database = {
           unit_price_iqd?: number | null
           unit_price_usd?: number | null
           updated_at?: string | null
+          warranty_text?: string | null
         }
         Update: {
           brand_id?: string | null
@@ -341,6 +345,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          low_stock_threshold?: number | null
           model?: string | null
           name?: string
           price?: number
@@ -348,6 +353,7 @@ export type Database = {
           unit_price_iqd?: number | null
           unit_price_usd?: number | null
           updated_at?: string | null
+          warranty_text?: string | null
         }
         Relationships: [
           {

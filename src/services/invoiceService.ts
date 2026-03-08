@@ -27,6 +27,8 @@ export interface InvoiceCreateData {
   items: InvoiceItemInsertType[];
 }
 
+export type InvoiceItemInput = Omit<InvoiceItemInsertType, "invoice_id">;
+
 export const invoiceService = {
   async getAllInvoices(): Promise<Omit<InvoiceWithRelations, "invoice_items">[]> {
     const { data, error } = await supabase
@@ -84,7 +86,7 @@ export const invoiceService = {
 
   async addInvoice(
     invoiceData: InvoiceInsertType,
-    itemsData: InvoiceItemInsertType[]
+    itemsData: InvoiceItemInput[]
   ): Promise<InvoiceRow> {
     // 1. التحقق من توفر المخزون لكل منتج
     for (const item of itemsData) {
@@ -355,7 +357,7 @@ export const invoiceService = {
   async updateInvoiceWithItems(
     id: string,
     invoiceData: Database["public"]["Tables"]["invoices"]["Update"],
-    itemsData: InvoiceItemInsertType[]
+    itemsData: InvoiceItemInput[]
   ): Promise<InvoiceRow> {
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
