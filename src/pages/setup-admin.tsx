@@ -40,6 +40,10 @@ export default function SetupAdminPage() {
       });
 
       const data = await response.json();
+      
+      // Log detailed error for debugging
+      console.log("Response status:", response.status);
+      console.log("Response data:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "فشل إنشاء المستخدم");
@@ -51,6 +55,7 @@ export default function SetupAdminPage() {
       setName("");
       setPhone("");
     } catch (err: any) {
+      console.error("Full error:", err);
       setError(err.message || "حدث خطأ أثناء إنشاء المستخدم");
     } finally {
       setIsLoading(false);
