@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/supabaseClient";
+import { createAdminClient } from "@/lib/supabaseClient";
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,8 +25,11 @@ export default async function handler(
   }
 
   try {
+    // Create admin Supabase client with service role key
+    const adminClient = createAdminClient();
+
     // Create user in Supabase Auth using the admin client
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email
@@ -50,8 +53,8 @@ export default async function handler(
       });
     }
 
-    // Create profile in profiles table
-    const { error: profileError } = await supabase
+    // Create profile in profiles table using admin client
+    const { error: profileError } = await adminClient
       .from("profiles")
       .insert({
         id: authData.user.id,
@@ -63,7 +66,7 @@ export default async function handler(
     if (profileError) {
       console.error("Profile error:", profileError);
       // Try to clean up the auth user if profile creation fails
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      await adminClient.auth.admin.deleteUser(authData.user.id);
       return res.status(400).json({ 
         error: "فشل إنشاء ملف المستخدم: " + profileError.message 
       });
